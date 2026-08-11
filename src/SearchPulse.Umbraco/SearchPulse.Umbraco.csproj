@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>SearchPulse.Umbraco</PackageId>
+    <Version>0.1.0-alpha.2</Version>
+    <Authors>SearchPulse contributors</Authors>
+    <Company>SearchPulse contributors</Company>
+    <Description>Simple, privacy-aware content engagement signals for Umbraco.</Description>
+    <PackageTags>umbraco;umbraco-marketplace;analytics;seo;privacy</PackageTags>
+    <PackageProjectUrl>https://github.com/BMichal93/searchpulse-for-umbraco</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/BMichal93/searchpulse-for-umbraco</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Umbraco.Cms" Version="[17.6.0, 18.0.0)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="App_Plugins\SearchPulse\**\*" Pack="true" PackagePath="staticwebassets\App_Plugins\SearchPulse" />
+    <None Include="build\SearchPulse.Umbraco.props" Pack="true" PackagePath="build\SearchPulse.Umbraco.props" />
+    <None Include="build\Microsoft.AspNetCore.StaticWebAssetEndpoints.props" Pack="true" PackagePath="build\Microsoft.AspNetCore.StaticWebAssetEndpoints.props" />
+    <None Include="build\Microsoft.AspNetCore.StaticWebAssets.props" Pack="true" PackagePath="build\Microsoft.AspNetCore.StaticWebAssets.props" />
+    <None Include="build\SearchPulse.Umbraco.props" Pack="true" PackagePath="buildMultiTargeting\SearchPulse.Umbraco.props" />
+    <None Include="build\SearchPulse.Umbraco.props" Pack="true" PackagePath="buildTransitive\SearchPulse.Umbraco.props" />
+    <None Include="build\Microsoft.AspNetCore.StaticWebAssetEndpoints.props" Pack="true" PackagePath="buildTransitive\Microsoft.AspNetCore.StaticWebAssetEndpoints.props" />
+    <None Include="build\Microsoft.AspNetCore.StaticWebAssets.props" Pack="true" PackagePath="buildTransitive\Microsoft.AspNetCore.StaticWebAssets.props" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" Link="README.md" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

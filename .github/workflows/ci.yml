@@ -1,0 +1,26 @@
+name: Build and test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore SearchPulse.Umbraco.sln
+      - run: dotnet build SearchPulse.Umbraco.sln --configuration Release --no-restore
+      - run: dotnet test SearchPulse.Umbraco.sln --configuration Release --no-build --verbosity normal
+      - run: dotnet pack src/SearchPulse.Umbraco/SearchPulse.Umbraco.csproj --configuration Release --no-build --output artifacts
+      - run: dotnet restore tests/SearchPulse.PackageSmoke/SearchPulse.PackageSmoke.csproj
+      - run: dotnet build tests/SearchPulse.PackageSmoke/SearchPulse.PackageSmoke.csproj --configuration Release --no-restore
+      - run: dotnet restore tests/SearchPulse.Umbraco.Integration/SearchPulse.Umbraco.Integration.csproj
+      - run: dotnet build tests/SearchPulse.Umbraco.Integration/SearchPulse.Umbraco.Integration.csproj --configuration Release --no-restore

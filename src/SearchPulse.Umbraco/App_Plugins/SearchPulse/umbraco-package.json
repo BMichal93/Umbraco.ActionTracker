@@ -1,0 +1,51 @@
+{
+  "id": "SearchPulse.Umbraco",
+  "name": "SearchPulse",
+  "version": "0.1.0-alpha.2",
+  "extensions": [
+    {
+      "type": "section",
+      "alias": "SearchPulse.Section",
+      "name": "SearchPulse",
+      "meta": {
+        "label": "SearchPulse",
+        "pathname": "searchpulse",
+        "icon": "icon-pulse"
+      }
+    },
+    {
+      "type": "sectionView",
+      "alias": "SearchPulse.Section.Overview",
+      "name": "SearchPulse overview",
+      "element": "/App_Plugins/SearchPulse/searchpulse-overview.js",
+      "meta": {
+        "label": "Overview",
+        "icon": "icon-pulse",
+        "pathname": "overview"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "SearchPulse.Section"
+        }
+      ]
+    },
+    {
+      "type": "sectionView",
+      "alias": "SearchPulse.Section.Settings",
+      "name": "SearchPulse settings",
+      "element": "/App_Plugins/SearchPulse/searchpulse-settings.js",
+      "meta": {
+        "label": "Settings",
+        "icon": "icon-settings",
+        "pathname": "settings"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "SearchPulse.Section"
+        }
+      ]
+    }
+  ]
+}

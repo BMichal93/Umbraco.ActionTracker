@@ -1,0 +1,70 @@
+# SearchPulse for Umbraco
+
+SearchPulse is a free, self-hosted Umbraco package for small teams that need simple content engagement signals: visits, reading depth, exits, and important clicks.
+
+## Status
+
+Early development. The package is intentionally disabled by default and does not assume a visitor has granted analytics consent.
+
+## Product principles
+
+- One analytics screen, one settings screen.
+- Aggregate content signals before individual visitor detail.
+- No third-party analytics service or SaaS account.
+- No form capture, session replay, raw IP retention, or cross-site tracking.
+- No client-side tracking until the host website supplies an analytics-consent provider.
+
+## Local development
+
+```powershell
+dotnet restore SearchPulse.Umbraco.sln
+dotnet build SearchPulse.Umbraco.sln --configuration Release
+dotnet pack src/SearchPulse.Umbraco/SearchPulse.Umbraco.csproj --configuration Release --no-build
+```
+
+## Installation and setup
+
+Install `SearchPulse.Umbraco` from NuGet in an Umbraco 17.6+ web project. SearchPulse is off by default. Add this optional retention configuration to `appsettings.json` (30 days is the default):
+
+```json
+{
+  "SearchPulse": {
+    "DetailedDataRetentionDays": 30
+  }
+}
+```
+
+Register an `IAnalyticsConsentProvider` in the host site's startup code. It must check the site's existing consent mechanism; SearchPulse deliberately has no universal cookie name or consent UI.
+
+```csharp
+builder.Services.AddSingleton<IAnalyticsConsentProvider, MySiteAnalyticsConsentProvider>();
+```
+
+The package's default provider always denies consent, so skipping this step means no event is stored.
+
+A cookie-based example is available at [samples/ConsentProvider/CookieAnalyticsConsentProvider.cs.example](samples/ConsentProvider/CookieAnalyticsConsentProvider.cs.example). Replace the example cookie name and value with those used by the existing consent-management platform; do not add a second consent banner just for SearchPulse.
+
+Include the tracker in the public layout and start it only after the same consent decision is available in the browser:
+
+```html
+<script src="/App_Plugins/SearchPulse/searchpulse-tracker.js" defer></script>
+<script>
+  // Run this only after the visitor has accepted analytics in your existing CMP.
+  window.SearchPulseConsent = true;
+  window.SearchPulse?.start();
+</script>
+```
+
+The server independently checks `IAnalyticsConsentProvider`; the browser flag alone never enables collection. The client sends only the current path and a fixed event type. It excludes query strings, fragments, visitor identifiers, IP addresses, and arbitrary properties.
+
+To record a meaningful local business action after tracking has started, call `window.SearchPulse.trackAction("newsletter-signup")`. Action names can contain lowercase letters, digits, dots, and hyphens only; this prevents the client from turning events into a free-form data channel.
+
+After the consent integration and layout include are ready, open the **SearchPulse** section in Umbraco, then use its single switch to turn tracking on. The Overview shows page views, exits, reading milestones, and up to five most-viewed pages for the last 30 days.
+
+## Privacy boundary
+
+SearchPulse is not a replacement for legal advice or a consent-management platform. It is designed to minimize data: no session replay, form capture, raw IP retention, user-agent storage, third-party transfer, or person-level journey reporting. The host remains responsible for choosing and documenting a lawful consent basis.
+
+## Licence
+
+[MIT](LICENSE)

@@ -1,0 +1,24 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+TestResults/
+coverage/
+artifacts/
+appsettings-schema*.json
+umbraco-package-schema.json
+
+# Node tooling
+node_modules/
+dist/
+
+# Local configuration and IDE files
+appsettings.Development.json
+*.user
+*.suo
+.vs/
+.idea/
+
+# Operating-system files
+.DS_Store
+Thumbs.db

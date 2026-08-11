@@ -1,0 +1,22 @@
+using Microsoft.AspNetCore.Http;
+using SearchPulse.Umbraco.Consent;
+
+namespace MySite.Analytics;
+
+// Copy this into the Umbraco host project and replace the cookie name and value
+// with the values written by the site's existing consent-management platform.
+public sealed class CookieAnalyticsConsentProvider : IAnalyticsConsentProvider
+{
+    private const string ConsentCookieName = "my-site-consent";
+    private const string AnalyticsGrantedValue = "analytics-granted";
+
+    public ValueTask<bool> HasAnalyticsConsentAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken = default)
+    {
+        var isGranted = httpContext.Request.Cookies.TryGetValue(ConsentCookieName, out var consentValue)
+            && string.Equals(consentValue, AnalyticsGrantedValue, StringComparison.Ordinal);
+
+        return ValueTask.FromResult(isGranted);
+    }
+}
