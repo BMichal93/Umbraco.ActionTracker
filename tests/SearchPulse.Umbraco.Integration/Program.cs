@@ -1,8 +1,10 @@
-
+using Microsoft.AspNetCore.DataProtection;
 using SearchPulse.Umbraco.Consent;
 using SearchPulse.Umbraco.Integration;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "umbraco", "Data", "SearchPulseIntegration-DataProtection-Keys");
+builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
 builder.Services.AddSingleton<IAnalyticsConsentProvider, TestAnalyticsConsentProvider>();
 
 builder.CreateUmbracoBuilder()

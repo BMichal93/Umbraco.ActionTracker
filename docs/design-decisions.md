@@ -195,3 +195,25 @@
 3. How best to run browser-level Umbraco tests in a public CI environment without storing test credentials.
 
 **Gaps addressed before moving on:** The real host completed unattended Umbraco installation, registered the packaged static assets, ran the SearchPulse migration, and created `target` as nullable. Live endpoint checks returned 204 without consent, 202 with the test consent cookie, and 400 for an untrusted Origin. The nullable-target migration defect found during this test was fixed and released as `0.1.0-alpha.2` before the verification was repeated.
+
+## 2026-08-11: Repeatable local-host verification
+
+**Decision:** Add a PowerShell verification script that starts a clean local Umbraco host, verifies the three privacy-critical collection outcomes, checks the migration log, and always stops the host. Run it in CI after package, package-consumer, and integration-host builds.
+
+**Would I use it as a website owner/editor/Umbraco expert?** Yes. A small package needs evidence that its central promise works in a real Umbraco application, not only unit tests.
+
+**Would I understand it as a business owner?** Yes. It verifies the simple promise: no consent means no collection; consent allows collection; other websites cannot submit data.
+
+**Three improvements to make next:**
+
+1. Avoid depending on the machine's default `dotnet` path by allowing an explicit executable path.
+2. Make reruns reliable by optionally removing only the integration fixture database.
+3. Keep the checks readable by naming expected HTTP outcomes in the script output.
+
+**Three uncertainties to resolve next:**
+
+1. CI and developer machines can use different PowerShell versions.
+2. An Umbraco application has a slow first boot.
+3. Migration behaviour can regress without changing endpoint code.
+
+**Gaps addressed before moving on:** The script uses broadly available `Invoke-WebRequest` rather than a runtime-specific HTTP client type, retries until the collector returns the expected no-consent result, and checks the generated migration log for the nullable `target` column. It remains entirely local and disposable.
