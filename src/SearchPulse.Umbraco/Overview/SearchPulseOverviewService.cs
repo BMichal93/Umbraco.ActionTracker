@@ -17,7 +17,8 @@ public sealed class SearchPulseOverviewService(
 
     public SearchPulseOverview GetLastThirtyDays()
     {
-        var since = DateTime.UtcNow.AddDays(-ReportingDays);
+        var generatedAtUtc = DateTime.UtcNow;
+        var since = GetReportingStartUtc(generatedAtUtc);
         using var scope = scopeProvider.CreateScope();
 
         var eventCounts = scope.Database.Fetch<SearchPulseEventCount>(
@@ -47,12 +48,26 @@ public sealed class SearchPulseOverviewService(
             pageCounts.Take(MaximumTopPages)
                 .Select(item => new SearchPulsePageSummary(item.Path, item.PageViews))
                 .ToArray(),
-            interactionCounts.Take(MaximumPopularInteractions)
-                .Select(item => new SearchPulseInteractionSummary(item.EventType, item.Target, item.Interactions))
-                .ToArray());
+            BuildPopularInteractions(interactionCounts),
+            generatedAtUtc);
 
         int GetTotal(SearchPulseEventType eventType) => totals.GetValueOrDefault(eventType.ToString());
     }
+
+    internal static DateTime GetReportingStartUtc(DateTime generatedAtUtc) => generatedAtUtc.AddDays(-ReportingDays);
+
+    internal static IReadOnlyList<SearchPulseInteractionSummary> BuildPopularInteractions(IEnumerable<SearchPulseInteractionCount> interactionCounts) =>
+        interactionCounts
+            .Where(item => item.Target is not null && IsSupportedInteractionType(item.EventType))
+            .OrderByDescending(item => item.Interactions)
+            .ThenBy(item => item.EventType, StringComparer.Ordinal)
+            .ThenBy(item => item.Target, StringComparer.Ordinal)
+            .Take(MaximumPopularInteractions)
+            .Select(item => new SearchPulseInteractionSummary(item.EventType, item.Target, item.Interactions))
+            .ToArray();
+
+    private static bool IsSupportedInteractionType(string eventType) =>
+        eventType is nameof(SearchPulseEventType.ExternalLinkClick) or nameof(SearchPulseEventType.DownloadClick) or nameof(SearchPulseEventType.CustomAction);
 
     private sealed class SearchPulseEventCount
     {
@@ -68,7 +83,7 @@ public sealed class SearchPulseOverviewService(
         public int PageViews { get; init; }
     }
 
-    private sealed class SearchPulseInteractionCount
+    internal sealed class SearchPulseInteractionCount
     {
         public string EventType { get; init; } = string.Empty;
 

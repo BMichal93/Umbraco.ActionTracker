@@ -217,3 +217,25 @@
 3. Migration behaviour can regress without changing endpoint code.
 
 **Gaps addressed before moving on:** The script uses broadly available `Invoke-WebRequest` rather than a runtime-specific HTTP client type, retries until the collector returns the expected no-consent result, and checks the generated migration log for the nullable `target` column. It remains entirely local and disposable.
+
+## 2026-08-11: Fresh overview feedback and package-level verification
+
+**Decision:** Show when the 30-day overview was generated and link its empty state to the concise setup instructions. Exercise the packaged backoffice asset and its authenticated API boundary in the clean Umbraco host, and publish the increment as a new alpha package version.
+
+**Would I use it as a website owner/editor/Umbraco expert?** Yes. An owner can tell a successful refresh from an empty dashboard and has one direct next step when no signals are present.
+
+**Would I understand it as a business owner?** Yes. The page says when its simple figures were updated and points to setup rather than exposing technical diagnostics.
+
+**Three improvements to make next:**
+
+1. Add a fully automated login-and-render browser test for the backoffice section.
+2. Run the retention and aggregation checks against SQL Server as well as SQLite.
+3. Add a simple release workflow that publishes a chosen pre-release package version.
+
+**Three uncertainties to resolve next:**
+
+1. Which headless browser runtime is reliable across the supported CI environments.
+2. Whether a separate package version should be required for every documentation-only change.
+3. Whether a package-specific authorization policy is needed beyond Umbraco's management API boundary.
+
+**Gaps addressed before moving on:** The overview now exposes its generation time, has a setup link when empty, ranks and caps interaction summaries under unit test, and the clean host verifies the installed overview asset plus unauthenticated management API rejection. The remaining interactive login check requires a headless browser runtime.

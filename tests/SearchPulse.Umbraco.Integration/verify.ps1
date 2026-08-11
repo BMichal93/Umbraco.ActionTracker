@@ -14,6 +14,9 @@ $errorLogPath = Join-Path $projectRoot "host.error.log"
 $endpoint = "http://127.0.0.1:5109/searchpulse/collect"
 $origin = "http://127.0.0.1:5109"
 $payload = Get-Content (Join-Path $projectRoot "fixtures/page-view.json") -Raw
+$backofficeUrl = "$origin/umbraco"
+$overviewApiUrl = "$origin/umbraco/management/api/v1/searchpulse/overview"
+$overviewScriptUrl = "$origin/App_Plugins/SearchPulse/searchpulse-overview.js"
 $hostProcess = $null
 $previousEnvironment = $env:ASPNETCORE_ENVIRONMENT
 
@@ -98,6 +101,20 @@ function Send-CollectionRequest {
     }
 }
 
+function Get-StatusCode {
+    param([string]$Uri)
+    try {
+        $response = Invoke-WebRequest -Uri $Uri -UseBasicParsing
+        return [int]$response.StatusCode
+    }
+    catch {
+        if ($null -ne $_.Exception.Response) {
+            return [int]$_.Exception.Response.StatusCode
+        }
+        throw
+    }
+}
+
 try {
     if ($ResetDatabase) {
         Remove-TestDatabase
@@ -117,12 +134,24 @@ try {
         throw "Unexpected endpoint results: no consent=$withoutConsent, consent=$withConsent, cross-origin=$crossOrigin."
     }
 
+    $backoffice = Invoke-WebRequest -Uri $backofficeUrl -UseBasicParsing
+    $overviewScript = Invoke-WebRequest -Uri $overviewScriptUrl -UseBasicParsing
+    $overviewApiStatus = Get-StatusCode -Uri $overviewApiUrl
+    if ($backoffice.StatusCode -ne 200) {
+        throw "The Umbraco backoffice did not load. Status=$($backoffice.StatusCode)."
+    }
+    if ($overviewScript.StatusCode -ne 200 -or $overviewScript.Content -notmatch "Popular interactions" -or $overviewScript.Content -notmatch "generatedAtUtc") {
+        throw "The packaged SearchPulse overview did not include the interactions and freshness UI."
+    }
+    if ($overviewApiStatus -ne 401) {
+        throw "The SearchPulse overview API was not protected as a backoffice endpoint. Status=$overviewApiStatus."
+    }
     $migrationLog = Get-Content -LiteralPath $logPath -Raw
     if ($migrationLog -notmatch '"target" TEXT COLLATE NOCASE NULL') {
         throw "The SearchPulse migration did not create a nullable target column."
     }
 
-    Write-Output "SearchPulse integration verification passed: migration, consent, and origin boundaries are correct."
+    Write-Output "SearchPulse integration verification passed: migration, consent, origin, backoffice assets, and API authorization boundaries are correct."
 }
 finally {
     if ($null -ne $hostProcess -and -not $hostProcess.HasExited) {

@@ -7,7 +7,8 @@ public sealed record SearchPulseOverview(
     bool IsEnabled,
     SearchPulseOverviewTotals Totals,
     IReadOnlyList<SearchPulsePageSummary> TopPages,
-    IReadOnlyList<SearchPulseInteractionSummary> PopularInteractions);
+    IReadOnlyList<SearchPulseInteractionSummary> PopularInteractions,
+    DateTime GeneratedAtUtc);
 
 /// <summary>
 /// Plain-language totals for the selected reporting window.

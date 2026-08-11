@@ -39,7 +39,8 @@ public sealed class SearchPulseManagementControllerTests
             true,
             new SearchPulseOverviewTotals(24, 9, 17, 12, 8),
             [new SearchPulsePageSummary("/services/seo", 8)],
-            [new SearchPulseInteractionSummary("CustomAction", "newsletter-signup", 6)]);
+            [new SearchPulseInteractionSummary("CustomAction", "newsletter-signup", 6)],
+            new DateTime(2026, 8, 11, 12, 0, 0, DateTimeKind.Utc));
         var controller = new SearchPulseManagementController(
             new StubSettingsService(true),
             new StubOverviewService(overview));
@@ -58,7 +59,8 @@ public sealed class SearchPulseManagementControllerTests
                     settings.IsEnabled(),
                     new SearchPulseOverviewTotals(0, 0, 0, 0, 0),
                     [],
-                    [])));
+                    [],
+                    DateTime.UnixEpoch)));
 
     private sealed class StubSettingsService(bool enabled) : ISearchPulseSettingsService
     {
