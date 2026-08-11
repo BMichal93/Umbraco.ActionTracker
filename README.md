@@ -59,7 +59,7 @@ The server independently checks `IAnalyticsConsentProvider`; the browser flag al
 
 To record a meaningful local business action after tracking has started, call `window.SearchPulse.trackAction("newsletter-signup")`. Action names can contain lowercase letters, digits, dots, and hyphens only; this prevents the client from turning events into a free-form data channel.
 
-After the consent integration and layout include are ready, open the **SearchPulse** section in Umbraco, then use its single switch to turn tracking on. The Overview shows page views, exits, reading milestones, and up to five most-viewed pages for the last 30 days.
+After the consent integration and layout include are ready, open the **SearchPulse** section in Umbraco, then use its single switch to turn tracking on. The Overview shows page views, exits, reading milestones, up to five most-viewed pages, and up to five popular anonymous interactions for the last 30 days.
 
 ## Privacy boundary
 

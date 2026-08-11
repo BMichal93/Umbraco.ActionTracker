@@ -13,6 +13,7 @@ public sealed class SearchPulseOverviewService(
 {
     private const int ReportingDays = 30;
     private const int MaximumTopPages = 5;
+    private const int MaximumPopularInteractions = 5;
 
     public SearchPulseOverview GetLastThirtyDays()
     {
@@ -26,6 +27,12 @@ public sealed class SearchPulseOverviewService(
             $"SELECT path AS Path, COUNT(*) AS PageViews FROM {SearchPulseEventDto.TableName} WHERE occurredUtc >= @0 AND eventType = @1 GROUP BY path ORDER BY COUNT(*) DESC",
             since,
             SearchPulseEventType.PageView.ToString());
+        var interactionCounts = scope.Database.Fetch<SearchPulseInteractionCount>(
+            $"SELECT eventType AS EventType, target AS Target, COUNT(*) AS Interactions FROM {SearchPulseEventDto.TableName} WHERE occurredUtc >= @0 AND target IS NOT NULL AND target <> '' AND eventType IN (@1, @2, @3) GROUP BY eventType, target ORDER BY COUNT(*) DESC, eventType ASC, target ASC",
+            since,
+            SearchPulseEventType.ExternalLinkClick.ToString(),
+            SearchPulseEventType.DownloadClick.ToString(),
+            SearchPulseEventType.CustomAction.ToString());
         scope.Complete();
 
         var totals = eventCounts.ToDictionary(item => item.EventType, item => item.Total, StringComparer.Ordinal);
@@ -39,6 +46,9 @@ public sealed class SearchPulseOverviewService(
                 GetTotal(SearchPulseEventType.Scroll75)),
             pageCounts.Take(MaximumTopPages)
                 .Select(item => new SearchPulsePageSummary(item.Path, item.PageViews))
+                .ToArray(),
+            interactionCounts.Take(MaximumPopularInteractions)
+                .Select(item => new SearchPulseInteractionSummary(item.EventType, item.Target, item.Interactions))
                 .ToArray());
 
         int GetTotal(SearchPulseEventType eventType) => totals.GetValueOrDefault(eventType.ToString());
@@ -56,5 +66,14 @@ public sealed class SearchPulseOverviewService(
         public string Path { get; init; } = string.Empty;
 
         public int PageViews { get; init; }
+    }
+
+    private sealed class SearchPulseInteractionCount
+    {
+        public string EventType { get; init; } = string.Empty;
+
+        public string? Target { get; init; }
+
+        public int Interactions { get; init; }
     }
 }

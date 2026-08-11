@@ -6,7 +6,8 @@ namespace SearchPulse.Umbraco.Overview;
 public sealed record SearchPulseOverview(
     bool IsEnabled,
     SearchPulseOverviewTotals Totals,
-    IReadOnlyList<SearchPulsePageSummary> TopPages);
+    IReadOnlyList<SearchPulsePageSummary> TopPages,
+    IReadOnlyList<SearchPulseInteractionSummary> PopularInteractions);
 
 /// <summary>
 /// Plain-language totals for the selected reporting window.
@@ -22,3 +23,11 @@ public sealed record SearchPulseOverviewTotals(
 /// A page's view count in the reporting window.
 /// </summary>
 public sealed record SearchPulsePageSummary(string Path, int PageViews);
+
+/// <summary>
+/// A frequently used anonymous interaction in the reporting window.
+/// </summary>
+public sealed record SearchPulseInteractionSummary(
+    string EventType,
+    string? Target,
+    int Interactions);
