@@ -1,6 +1,8 @@
+import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
+
 const searchPulseManagementApi = "/umbraco/management/api/v1/searchpulse";
 
-class SearchPulseOverviewElement extends HTMLElement {
+class SearchPulseOverviewElement extends UmbElementMixin(HTMLElement) {
     connectedCallback() {
         this.renderLoading();
         void this.load();
