@@ -87,3 +87,4 @@ function escapeHtml(value) {
 }
 
 customElements.define("searchpulse-overview", SearchPulseOverviewElement);
+export default SearchPulseOverviewElement;

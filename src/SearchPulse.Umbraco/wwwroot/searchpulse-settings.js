@@ -67,3 +67,4 @@ class SearchPulseSettingsElement extends HTMLElement {
 }
 
 customElements.define("searchpulse-settings", SearchPulseSettingsElement);
+export default SearchPulseSettingsElement;

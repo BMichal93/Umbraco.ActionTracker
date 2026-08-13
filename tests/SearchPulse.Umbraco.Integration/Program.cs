@@ -11,6 +11,7 @@ builder.CreateUmbracoBuilder()
     .AddBackOffice()
     .AddWebsite()
     .AddComposers()
+    .AddNotificationAsyncHandler<Umbraco.Cms.Core.Notifications.UmbracoApplicationStartingNotification, ReviewAdministratorSectionAccess>()
     .Build();
 
 WebApplication app = builder.Build();
