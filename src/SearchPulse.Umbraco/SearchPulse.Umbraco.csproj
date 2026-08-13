@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <PackageId>SearchPulse.Umbraco</PackageId>
-    <Version>0.1.0-alpha.3</Version>
+    <Version>0.1.0-alpha.4</Version>
     <Authors>SearchPulse contributors</Authors>
     <Company>SearchPulse contributors</Company>
     <Description>Simple, privacy-aware content engagement signals for Umbraco.</Description>
@@ -14,6 +14,7 @@
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <StaticWebAssetBasePath>App_Plugins/SearchPulse</StaticWebAssetBasePath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,14 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="App_Plugins\SearchPulse\**\*" Pack="true" PackagePath="staticwebassets\App_Plugins\SearchPulse" />
-    <None Include="build\SearchPulse.Umbraco.props" Pack="true" PackagePath="build\SearchPulse.Umbraco.props" />
-    <None Include="build\Microsoft.AspNetCore.StaticWebAssetEndpoints.props" Pack="true" PackagePath="build\Microsoft.AspNetCore.StaticWebAssetEndpoints.props" />
-    <None Include="build\Microsoft.AspNetCore.StaticWebAssets.props" Pack="true" PackagePath="build\Microsoft.AspNetCore.StaticWebAssets.props" />
-    <None Include="build\SearchPulse.Umbraco.props" Pack="true" PackagePath="buildMultiTargeting\SearchPulse.Umbraco.props" />
-    <None Include="build\SearchPulse.Umbraco.props" Pack="true" PackagePath="buildTransitive\SearchPulse.Umbraco.props" />
-    <None Include="build\Microsoft.AspNetCore.StaticWebAssetEndpoints.props" Pack="true" PackagePath="buildTransitive\Microsoft.AspNetCore.StaticWebAssetEndpoints.props" />
-    <None Include="build\Microsoft.AspNetCore.StaticWebAssets.props" Pack="true" PackagePath="buildTransitive\Microsoft.AspNetCore.StaticWebAssets.props" />
     <None Include="..\..\README.md" Pack="true" PackagePath="\" Link="README.md" />
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
   </ItemGroup>

@@ -3,6 +3,6 @@
     <RestoreAdditionalProjectSources>$(MSBuildThisFileDirectory)..\..\artifacts</RestoreAdditionalProjectSources>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="SearchPulse.Umbraco" Version="0.1.0-alpha.3" />
+    <PackageReference Include="SearchPulse.Umbraco" Version="0.1.0-alpha.4" />
   </ItemGroup>
 </Project>

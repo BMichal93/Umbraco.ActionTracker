@@ -12,7 +12,7 @@
   <ItemGroup>
     <PackageVersion Include="Umbraco.Cms" Version="17.*" />
     <PackageVersion Include="Umbraco.Cms.DevelopmentMode.Backoffice" Version="17.*" />
-    <PackageVersion Include="SearchPulse.Umbraco" Version="0.1.0-alpha.3" />
+    <PackageVersion Include="SearchPulse.Umbraco" Version="0.1.0-alpha.4" />
     <PackageVersion Include="Microsoft.ICU.ICU4C.Runtime" Version="$(UmbracoAppLocalIcuVersion)" />
   </ItemGroup>
 </Project>
