@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <PackageId>SearchPulse.Umbraco</PackageId>
-    <Version>0.1.0-alpha.6</Version>
+    <Version>0.1.0-alpha.7</Version>
     <Authors>SearchPulse contributors</Authors>
     <Company>SearchPulse contributors</Company>
     <Description>Simple, privacy-aware content engagement signals for Umbraco.</Description>

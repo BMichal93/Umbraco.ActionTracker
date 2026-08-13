@@ -1,4 +1,5 @@
 import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
+import { UMB_AUTH_CONTEXT } from "@umbraco-cms/backoffice/auth";
 
 const searchPulseSettingsApi = "/umbraco/management/api/v1/searchpulse/settings";
 
@@ -10,7 +11,7 @@ class SearchPulseSettingsElement extends UmbElementMixin(HTMLElement) {
 
     async load() {
         try {
-            const response = await fetch(searchPulseSettingsApi, { credentials: "same-origin" });
+            const response = await this.request(searchPulseSettingsApi);
             if (!response.ok) {
                 throw new Error("The settings could not be loaded.");
             }
@@ -46,9 +47,8 @@ class SearchPulseSettingsElement extends UmbElementMixin(HTMLElement) {
         statusMessage.textContent = "Saving…";
 
         try {
-            const response = await fetch(searchPulseSettingsApi, {
+            const response = await this.request(searchPulseSettingsApi, {
                 method: "PUT",
-                credentials: "same-origin",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ isEnabled }),
             });
@@ -63,6 +63,19 @@ class SearchPulseSettingsElement extends UmbElementMixin(HTMLElement) {
         }
     }
 
+    async request(url, options = {}) {
+        const authContext = await this.getContext(UMB_AUTH_CONTEXT);
+        const token = await authContext?.getLatestToken();
+
+        return fetch(url, {
+            credentials: "include",
+            ...options,
+            headers: {
+                Authorization: `Bearer ${token}`,
+                ...options.headers,
+            },
+        });
+    }
     renderError() {
         this.innerHTML = "<uui-box headline=\"Tracking\"><p>We could not load this setting. Refresh the page, or check that SearchPulse is installed and the backoffice user has access.</p></uui-box>";
     }
