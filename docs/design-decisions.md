@@ -239,3 +239,25 @@
 3. Whether a package-specific authorization policy is needed beyond Umbraco's management API boundary.
 
 **Gaps addressed before moving on:** The overview now exposes its generation time, has a setup link when empty, ranks and caps interaction summaries under unit test, and the clean host verifies the installed overview asset plus unauthenticated management API rejection. The remaining interactive login check requires a headless browser runtime.
+
+## 2026-08-13: SQL Server package-host verification
+
+**Decision:** Run the clean package-host verification against a disposable SQL Server 2022 service in CI as well as the existing SQLite fixture. Keep database reset deletion SQLite-only; SQL Server receives an isolated database created by Umbraco's unattended install.
+
+**Would I use it as a website owner/editor/Umbraco expert?** Yes. Package installation is verified against the two database engines a small Umbraco site is most likely to encounter, without adding anything to the editor experience.
+
+**Would I understand it as a business owner?** Yes. This is a reliability check: the package continues to work when the website uses SQL Server rather than its local test database.
+
+**Three improvements to make next:**
+
+1. Exercise retention with an expired row against both provider fixtures.
+2. Add an authenticated browser test when a reliable headless runtime is available.
+3. Consolidate repeated package-build steps in CI once the release workflow is introduced.
+
+**Three uncertainties to resolve next:**
+
+1. Whether the SQL Server container image keeps the current `sqlcmd` health-check path across future tags.
+2. Whether CI runtime remains acceptable once browser coverage is added.
+3. Whether a separate upgrade-path fixture is needed before the first stable release.
+
+**Gaps addressed before moving on:** The tracked integration configuration now contains its own test-only SQLite defaults, SQL Server overrides only the connection string in CI, and the same migration, consent, origin, backoffice-asset, and authorization checks run for each provider. Local verification continues to cover SQLite; the SQL Server service is provisioned by CI.

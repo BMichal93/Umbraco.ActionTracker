@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$DotnetPath = "dotnet",
-    [switch]$ResetDatabase
+    [switch]$ResetDatabase,
+    [ValidateSet("Sqlite", "SqlServer")][string]$DatabaseProvider = "Sqlite"
 )
 
 $ErrorActionPreference = "Stop"
@@ -27,6 +28,10 @@ Remove-Item Env:PATH -ErrorAction SilentlyContinue
 $env:Path = $effectivePath
 
 function Remove-TestDatabase {
+    if ($DatabaseProvider -eq "SqlServer") {
+        return
+    }
+
     foreach ($path in @("$databasePath", "$databasePath-shm", "$databasePath-wal")) {
         if (Test-Path -LiteralPath $path) {
             Remove-Item -LiteralPath $path -Force
@@ -116,6 +121,10 @@ function Get-StatusCode {
 }
 
 try {
+    if ($DatabaseProvider -eq "SqlServer" -and ([string]::IsNullOrWhiteSpace($env:ConnectionStrings__umbracoDbDSN) -or $env:ConnectionStrings__umbracoDbDSN_ProviderName -ne "Microsoft.Data.SqlClient")) {
+        throw "SQL Server verification requires ConnectionStrings__umbracoDbDSN and ConnectionStrings__umbracoDbDSN_ProviderName=Microsoft.Data.SqlClient."
+    }
+
     if ($ResetDatabase) {
         Remove-TestDatabase
     }
@@ -151,7 +160,7 @@ try {
         throw "The SearchPulse migration did not create a nullable target column."
     }
 
-    Write-Output "SearchPulse integration verification passed: migration, consent, origin, backoffice assets, and API authorization boundaries are correct."
+    Write-Output "SearchPulse $DatabaseProvider integration verification passed: migration, consent, origin, backoffice assets, and API authorization boundaries are correct."
 }
 finally {
     if ($null -ne $hostProcess -and -not $hostProcess.HasExited) {
