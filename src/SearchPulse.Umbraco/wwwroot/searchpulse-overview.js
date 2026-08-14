@@ -107,24 +107,6 @@ class SearchPulseOverviewElement extends UmbElementMixin(HTMLElement) {
         this.querySelector("#searchpulse-clear").addEventListener("click", () => void this.clear());
     }
 
-    async clear() {
-        const label = this.rangeDays === 0 ? "all SearchPulse data" : "SearchPulse data from the selected time range";
-        if (!window.confirm("Clear " + label + "? This cannot be undone.")) {
-            return;
-        }
-
-        const { error } = await umbHttpClient.delete({
-            url: searchPulseManagementApi + "/overview?rangeDays=" + this.rangeDays,
-            security: bearerSecurity,
-        });
-        if (error) {
-            this.renderError("We could not clear the data. Try again.");
-            return;
-        }
-
-        await this.load();
-    }
-
     renderError(message = "We could not load the overview. Refresh the page, or check that SearchPulse is installed and the backoffice user has access.") {
         this.innerHTML = "<uui-box headline=\"SearchPulse\"><p>" + escapeHtml(message) + "</p></uui-box>";
     }

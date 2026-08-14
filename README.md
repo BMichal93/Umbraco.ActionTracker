@@ -29,7 +29,9 @@ Install `SearchPulse.Umbraco` from NuGet in an Umbraco 17.6+ web project. Search
 ```json
 {
   "SearchPulse": {
-    "DetailedDataRetentionDays": 30
+    "DetailedDataRetentionDays": 30,
+    "MaximumQueuedEvents": 100000,
+    "EventProcessingBatchSize": 250
   }
 }
 ```
@@ -56,6 +58,7 @@ Include the tracker in the public layout and start it only after the same consen
 ```
 
 The server independently checks `IAnalyticsConsentProvider`; the browser flag alone never enables collection. The client sends only the current path and a fixed event type. It excludes query strings, fragments, visitor identifiers, IP addresses, and arbitrary properties.
+Accepted events are first written to a package-owned durable database queue. A hosted Umbraco service processes bounded batches into reporting data, so reporting work does not run on the visitor request. The queue defaults to 100,000 events as a site-protection limit and uses short leases to coordinate multiple Umbraco nodes. If that limit is reached, SearchPulse returns a retryable response rather than allowing analytics to exhaust the site database.
 
 To record a meaningful local business action after tracking has started, call `window.SearchPulse.trackAction("newsletter-signup")`. Action names can contain lowercase letters, digits, dots, and hyphens only; this prevents the client from turning events into a free-form data channel.
 

@@ -23,6 +23,7 @@ public sealed class SearchPulseCollectionController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> CollectAsync(
         [FromBody] SearchPulseEventRequest? request,
         CancellationToken cancellationToken)
@@ -47,8 +48,10 @@ public sealed class SearchPulseCollectionController(
             return BadRequest();
         }
 
-        await eventStore.RecordAsync(searchPulseEvent, cancellationToken);
-        return Accepted();
+        var result = await eventStore.RecordAsync(searchPulseEvent, cancellationToken);
+        return result == SearchPulseEventRecordResult.Accepted
+            ? Accepted()
+            : StatusCode(StatusCodes.Status503ServiceUnavailable);
     }
 
     private static bool IsSameOrigin(HttpRequest request)

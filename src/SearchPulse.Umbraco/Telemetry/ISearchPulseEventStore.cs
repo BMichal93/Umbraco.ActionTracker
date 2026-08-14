@@ -1,9 +1,13 @@
 namespace SearchPulse.Umbraco.Telemetry;
 
 /// <summary>
-/// Stores validated anonymous content signals.
+/// Durably accepts validated anonymous content signals.
 /// </summary>
 public interface ISearchPulseEventStore
 {
-    Task RecordAsync(SearchPulseEvent searchPulseEvent, CancellationToken cancellationToken = default);
+    Task<SearchPulseEventRecordResult> RecordAsync(
+        SearchPulseEvent searchPulseEvent,
+        CancellationToken cancellationToken = default);
+
+    int GetPendingEventCount();
 }

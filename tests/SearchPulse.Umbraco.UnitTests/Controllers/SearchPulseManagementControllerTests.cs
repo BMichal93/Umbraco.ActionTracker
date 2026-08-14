@@ -1,23 +1,28 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using SearchPulse.Umbraco.Configuration;
 using SearchPulse.Umbraco.Controllers;
 using SearchPulse.Umbraco.Overview;
 using SearchPulse.Umbraco.Settings;
+using SearchPulse.Umbraco.Telemetry;
 
 namespace SearchPulse.Umbraco.UnitTests.Controllers;
 
 public sealed class SearchPulseManagementControllerTests
 {
     [Fact]
-    public void GetSettingsReturnsTheOnlyPersistedControl()
+    public void GetSettingsReturnsTheTrackingAndQueueState()
     {
-        var settings = new StubSettingsService(true);
-        var controller = CreateController(settings);
+        var controller = CreateController(new StubSettingsService(true));
 
         var result = controller.GetSettings();
 
         var objectResult = Assert.IsType<OkObjectResult>(result.Result);
         var response = Assert.IsType<SearchPulseSettingsResponse>(objectResult.Value);
         Assert.True(response.IsEnabled);
+        Assert.Equal(12, response.PendingEvents);
+        Assert.Equal(100_000, response.MaximumQueuedEvents);
     }
 
     [Fact]
@@ -37,9 +42,7 @@ public sealed class SearchPulseManagementControllerTests
     {
         var overview = CreateOverview();
         var overviewService = new StubOverviewService(overview);
-        var controller = new SearchPulseManagementController(
-            new StubSettingsService(true),
-            overviewService);
+        var controller = CreateController(new StubSettingsService(true), overviewService);
 
         var result = controller.GetOverview(7, "name");
 
@@ -49,17 +52,15 @@ public sealed class SearchPulseManagementControllerTests
     }
 
     [Fact]
-    public void ClearOverviewClearsTheSelectedRange()
+    public void ClearDataClearsTheSelectedRangeFromSettings()
     {
-        var overviewService = new StubOverviewService(CreateOverview());
-        var controller = new SearchPulseManagementController(
-            new StubSettingsService(true),
-            overviewService);
+        var dataManagement = new StubDataManagementService();
+        var controller = CreateController(new StubSettingsService(true), dataManagementService: dataManagement);
 
-        var result = controller.ClearOverview(90);
+        var result = controller.ClearData(90);
 
         Assert.IsType<NoContentResult>(result);
-        Assert.Equal(90, overviewService.ClearedRangeDays);
+        Assert.Equal(90, dataManagement.ClearedRangeDays);
     }
 
     [Fact]
@@ -72,8 +73,16 @@ public sealed class SearchPulseManagementControllerTests
         Assert.IsType<BadRequestResult>(result.Result);
     }
 
-    private static SearchPulseManagementController CreateController(StubSettingsService settings) =>
-        new(settings, new StubOverviewService(CreateOverview()));
+    private static SearchPulseManagementController CreateController(
+        StubSettingsService settings,
+        StubOverviewService? overviewService = null,
+        StubDataManagementService? dataManagementService = null) =>
+        new(
+            settings,
+            overviewService ?? new StubOverviewService(CreateOverview()),
+            dataManagementService ?? new StubDataManagementService(),
+            new StubEventStore(),
+            new StubOptionsMonitor());
 
     private static SearchPulseOverview CreateOverview() =>
         new(
@@ -96,14 +105,36 @@ public sealed class SearchPulseManagementControllerTests
     {
         public (int RangeDays, SearchPulseOverviewSort Sort)? LastRequest { get; private set; }
 
-        public int? ClearedRangeDays { get; private set; }
-
         public SearchPulseOverview GetOverview(int rangeDays, SearchPulseOverviewSort sort)
         {
             LastRequest = (rangeDays, sort);
             return overview;
         }
+    }
+
+    private sealed class StubDataManagementService : ISearchPulseDataManagementService
+    {
+        public int? ClearedRangeDays { get; private set; }
 
         public void Clear(int rangeDays) => ClearedRangeDays = rangeDays;
+    }
+
+    private sealed class StubEventStore : ISearchPulseEventStore
+    {
+        public Task<SearchPulseEventRecordResult> RecordAsync(
+            SearchPulseEvent searchPulseEvent,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(SearchPulseEventRecordResult.Accepted);
+
+        public int GetPendingEventCount() => 12;
+    }
+
+    private sealed class StubOptionsMonitor : IOptionsMonitor<SearchPulseOptions>
+    {
+        public SearchPulseOptions CurrentValue { get; } = new();
+
+        public SearchPulseOptions Get(string? name) => CurrentValue;
+
+        public IDisposable? OnChange(Action<SearchPulseOptions, string?> listener) => null;
     }
 }

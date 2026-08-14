@@ -4,6 +4,7 @@ const scrollEvents = [
     [50, "scroll-50"],
     [75, "scroll-75"],
 ];
+const retryDelays = [250, 1000, 3000];
 
 let started = false;
 let exitTracked = false;
@@ -13,25 +14,38 @@ function currentPath() {
     return window.location.pathname;
 }
 
-function send(type, target) {
+async function send(type, target) {
     const payload = { type, path: currentPath() };
     if (target) {
         payload.target = target;
     }
 
-    void fetch(searchPulseEndpoint, {
-        method: "POST",
-        credentials: "same-origin",
-        keepalive: true,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-    });
+    for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
+        try {
+            const response = await fetch(searchPulseEndpoint, {
+                method: "POST",
+                credentials: "same-origin",
+                keepalive: true,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            if (response.status !== 503 || attempt === retryDelays.length) {
+                return;
+            }
+        } catch {
+            if (attempt === retryDelays.length) {
+                return;
+            }
+        }
+
+        await new Promise(resolve => window.setTimeout(resolve, retryDelays[attempt]));
+    }
 }
 
 function trackExit() {
     if (!exitTracked) {
         exitTracked = true;
-        send("page-exit");
+        void send("page-exit");
     }
 }
 
@@ -45,7 +59,7 @@ function trackScroll() {
     for (const [milestone, eventType] of scrollEvents) {
         if (percentage >= milestone && !trackedScrollMilestones.has(milestone)) {
             trackedScrollMilestones.add(milestone);
-            send(eventType);
+            void send(eventType);
         }
     }
 }
@@ -62,12 +76,12 @@ function trackLinkClick(event) {
 
     const destination = new URL(link.href, window.location.href);
     if (destination.origin !== window.location.origin) {
-        send("external-link-click", destination.hostname);
+        void send("external-link-click", destination.hostname);
         return;
     }
 
     if (link.hasAttribute("download")) {
-        send("download-click", "download");
+        void send("download-click", "download");
     }
 }
 
@@ -77,7 +91,7 @@ function start() {
     }
 
     started = true;
-    send("page-view");
+    void send("page-view");
     window.addEventListener("scroll", trackScroll, { passive: true });
     window.addEventListener("pagehide", trackExit, { once: true });
     document.addEventListener("click", trackLinkClick);
@@ -87,7 +101,7 @@ window.SearchPulse = Object.freeze({
     start,
     trackAction(target) {
         if (started) {
-            send("custom-action", target);
+            void send("custom-action", target);
         }
     },
 });

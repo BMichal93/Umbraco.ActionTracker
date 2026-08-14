@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using SearchPulse.Umbraco.Configuration;
 using SearchPulse.Umbraco.Overview;
 using SearchPulse.Umbraco.Settings;
+using SearchPulse.Umbraco.Telemetry;
 using Umbraco.Cms.Api.Management.Controllers;
 using Umbraco.Cms.Api.Management.Routing;
 
@@ -13,7 +16,10 @@ namespace SearchPulse.Umbraco.Controllers;
 [VersionedApiBackOfficeRoute("searchpulse")]
 public sealed class SearchPulseManagementController(
     ISearchPulseSettingsService settingsService,
-    ISearchPulseOverviewService overviewService) : ManagementApiControllerBase
+    ISearchPulseOverviewService overviewService,
+    ISearchPulseDataManagementService dataManagementService,
+    ISearchPulseEventStore eventStore,
+    IOptionsMonitor<SearchPulseOptions> optionsMonitor) : ManagementApiControllerBase
 {
     [HttpGet("overview")]
     [ProducesResponseType<SearchPulseOverview>(StatusCodes.Status200OK)]
@@ -31,29 +37,32 @@ public sealed class SearchPulseManagementController(
         return Ok(overviewService.GetOverview(rangeDays, overviewSort));
     }
 
-    [HttpDelete("overview")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public IActionResult ClearOverview([FromQuery] int rangeDays = 0)
-    {
-        if (!SearchPulseOverviewService.IsSupportedRange(rangeDays))
-        {
-            return BadRequest();
-        }
-
-        overviewService.Clear(rangeDays);
-        return NoContent();
-    }
-
     [HttpGet("settings")]
     [ProducesResponseType<SearchPulseSettingsResponse>(StatusCodes.Status200OK)]
-    public ActionResult<SearchPulseSettingsResponse> GetSettings() => Ok(new SearchPulseSettingsResponse(settingsService.IsEnabled()));
+    public ActionResult<SearchPulseSettingsResponse> GetSettings() => Ok(new SearchPulseSettingsResponse(
+        settingsService.IsEnabled(),
+        eventStore.GetPendingEventCount(),
+        optionsMonitor.CurrentValue.MaximumQueuedEvents));
 
     [HttpPut("settings")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public IActionResult UpdateSettings(SearchPulseSettingsRequest request)
     {
         settingsService.SetEnabled(request.IsEnabled);
+        return NoContent();
+    }
+
+    [HttpDelete("settings/data")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult ClearData([FromQuery] int rangeDays = 0)
+    {
+        if (!SearchPulseOverviewService.IsSupportedRange(rangeDays))
+        {
+            return BadRequest();
+        }
+
+        dataManagementService.Clear(rangeDays);
         return NoContent();
     }
 
@@ -75,9 +84,9 @@ public sealed class SearchPulseManagementController(
 }
 
 /// <summary>
-/// The one persisted backoffice setting.
+/// The operational controls and queue state presented in the backoffice.
 /// </summary>
-public sealed record SearchPulseSettingsResponse(bool IsEnabled);
+public sealed record SearchPulseSettingsResponse(bool IsEnabled, int PendingEvents, int MaximumQueuedEvents);
 
 /// <summary>
 /// A request to turn collection on or off.

@@ -37,6 +37,20 @@ public sealed class SearchPulseOptionsValidatorTests
         Assert.False(result.Succeeded);
     }
 
+    [Theory]
+    [InlineData(999)]
+    [InlineData(1_000_001)]
+    public void ValidateRejectsQueueCapacityOutsideTheSafeRange(int maximumQueuedEvents)
+    {
+        var options = new SearchPulseOptions
+        {
+            MaximumQueuedEvents = maximumQueuedEvents,
+        };
+
+        var result = _validator.Validate(null, options);
+
+        Assert.False(result.Succeeded);
+    }
     [Fact]
     public void ValidateRejectsAnExcludedPathThatIsNotAPath()
     {

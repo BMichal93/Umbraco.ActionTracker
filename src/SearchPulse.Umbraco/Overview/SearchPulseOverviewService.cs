@@ -63,20 +63,9 @@ public sealed class SearchPulseOverviewService(
         int GetTotal(SearchPulseEventType eventType) => totals.GetValueOrDefault(eventType.ToString());
     }
 
-    public void Clear(int rangeDays)
-    {
-        using var scope = scopeProvider.CreateScope();
-        var since = GetReportingStartUtc(DateTime.UtcNow, rangeDays);
-        object sinceParameter = since.HasValue ? since.Value : DBNull.Value;
-        scope.Database.Execute(
-            $"DELETE FROM {SearchPulseEventDto.TableName} WHERE (@0 IS NULL OR occurredUtc >= @0)",
-            sinceParameter);
-        scope.Complete();
-    }
-
     public static bool IsSupportedRange(int rangeDays) => rangeDays is 0 or 1 or 7 or 30 or 90;
 
-    internal static DateTime? GetReportingStartUtc(DateTime generatedAtUtc, int rangeDays) =>
+    public static DateTime? GetReportingStartUtc(DateTime generatedAtUtc, int rangeDays) =>
         rangeDays == 0 ? null : generatedAtUtc.AddDays(-rangeDays);
 
     internal static string GetRangeLabel(int rangeDays) => rangeDays switch

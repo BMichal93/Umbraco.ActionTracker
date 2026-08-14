@@ -53,6 +53,20 @@ public sealed class SearchPulseCollectionControllerTests
     }
 
     [Fact]
+    public async Task CollectAsyncReturnsServiceUnavailableWhenDurableQueueIsFull()
+    {
+        var consentProvider = new StubConsentProvider(true);
+        var store = new RecordingEventStore(SearchPulseEventRecordResult.QueueFull);
+        var controller = CreateController(true, consentProvider, store, "https://website.test");
+
+        var result = await controller.CollectAsync(CreatePageViewRequest(), CancellationToken.None);
+
+        var status = Assert.IsType<StatusCodeResult>(result);
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, status.StatusCode);
+        Assert.Empty(store.Events);
+    }
+
+    [Fact]
     public async Task CollectAsyncRejectsCrossOriginRequestsBeforeConsentCheck()
     {
         var consentProvider = new StubConsentProvider(true);
@@ -110,14 +124,22 @@ public sealed class SearchPulseCollectionControllerTests
         }
     }
 
-    private sealed class RecordingEventStore : ISearchPulseEventStore
+    private sealed class RecordingEventStore(SearchPulseEventRecordResult result = SearchPulseEventRecordResult.Accepted) : ISearchPulseEventStore
     {
         public List<SearchPulseEvent> Events { get; } = [];
 
-        public Task RecordAsync(SearchPulseEvent searchPulseEvent, CancellationToken cancellationToken = default)
+        public Task<SearchPulseEventRecordResult> RecordAsync(
+            SearchPulseEvent searchPulseEvent,
+            CancellationToken cancellationToken = default)
         {
-            Events.Add(searchPulseEvent);
-            return Task.CompletedTask;
+            if (result == SearchPulseEventRecordResult.Accepted)
+            {
+                Events.Add(searchPulseEvent);
+            }
+
+            return Task.FromResult(result);
         }
+
+        public int GetPendingEventCount() => 0;
     }
 }
