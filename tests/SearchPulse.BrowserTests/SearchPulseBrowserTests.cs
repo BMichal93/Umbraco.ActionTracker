@@ -1,13 +1,18 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
+using System.Net.Http.Json;
 using System.Net.Sockets;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Data.Sqlite;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 using Xunit;
 
 namespace SearchPulse.BrowserTests;
 
+[Collection("SearchPulse browser")]
 public sealed class SearchPulseBrowserTests : IAsyncLifetime
 {
     private readonly SearchPulseBrowserHost _host = new();
@@ -67,6 +72,7 @@ public sealed class SearchPulseBrowserTests : IAsyncLifetime
             var body = await page.Locator("body").InnerTextAsync();
             throw new InvalidOperationException($"SearchPulse overview did not render. URL={page.Url}. Body={body}", exception);
         }
+
         await Expect(page.GetByText("Most viewed pages")).ToBeVisibleAsync();
         await Expect(page.GetByText("Popular interactions")).ToBeVisibleAsync();
         await Expect(page.GetByText("newsletter-signup")).ToBeVisibleAsync();
@@ -81,6 +87,7 @@ public sealed class SearchPulseBrowserTests : IAsyncLifetime
             var body = await page.Locator("body").InnerTextAsync();
             throw new InvalidOperationException($"SearchPulse settings did not render. URL={page.Url}. Body={body}", exception);
         }
+
         await Expect(page.GetByText("Collection health")).ToBeVisibleAsync();
         await Expect(page.GetByText("Data management")).ToBeVisibleAsync();
 
@@ -94,6 +101,119 @@ public sealed class SearchPulseBrowserTests : IAsyncLifetime
         await Expect(page.GetByText("No page views in this period.")).ToBeVisibleAsync();
         await context.DisposeAsync();
     }
+
+    [Fact]
+    public async Task StressTestRecordsEveryConcurrentClick()
+    {
+        const int requestCount = 300;
+        var path = $"/searchpulse-load/stress-{Guid.NewGuid():N}";
+        using var client = CreateCollectorClient();
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, requestCount)
+            .Select(index => PostCustomActionAsync(client, path, $"stress-click-{index}")));
+
+        Assert.All(responses, response => Assert.Equal(HttpStatusCode.Accepted, response.StatusCode));
+        await WaitForRecordedEventCountAsync(path, requestCount, TimeSpan.FromSeconds(30));
+    }
+
+    [Fact]
+    public async Task PerformanceTestAcceptsConcurrentClicksWithinLatencyBudget()
+    {
+        const int requestCount = 120;
+        const int maximumConcurrency = 20;
+        var path = $"/searchpulse-load/performance-{Guid.NewGuid():N}";
+        using var client = CreateCollectorClient();
+        using var limiter = new SemaphoreSlim(maximumConcurrency, maximumConcurrency);
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, requestCount).Select(async index =>
+        {
+            await limiter.WaitAsync();
+            try
+            {
+                return await PostCustomActionAsync(client, path, $"performance-click-{index}");
+            }
+            finally
+            {
+                limiter.Release();
+            }
+        }));
+
+        Assert.All(responses, response => Assert.Equal(HttpStatusCode.Accepted, response.StatusCode));
+        var p95 = responses
+            .Select(response => response.Duration)
+            .OrderBy(duration => duration)
+            .ElementAt((int)Math.Ceiling(requestCount * 0.95) - 1);
+        Assert.True(p95 < TimeSpan.FromSeconds(2), $"Collector p95 was {p95.TotalMilliseconds:F0} ms.");
+        await WaitForRecordedEventCountAsync(path, requestCount, TimeSpan.FromSeconds(20));
+    }
+
+    private HttpClient CreateCollectorClient()
+    {
+        var cookieContainer = new CookieContainer();
+        cookieContainer.Add(new Uri(_host.BaseUrl), new System.Net.Cookie("SearchPulseIntegrationConsent", "yes", "/"));
+        var handler = new HttpClientHandler
+        {
+            CookieContainer = cookieContainer,
+            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+        };
+
+        return new HttpClient(handler)
+        {
+            BaseAddress = new Uri(_host.BaseUrl),
+            Timeout = TimeSpan.FromSeconds(15),
+        };
+    }
+
+    private async Task<CollectorResponse> PostCustomActionAsync(HttpClient client, string path, string target)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/searchpulse/collect")
+        {
+            Content = JsonContent.Create(new
+            {
+                type = "custom-action",
+                path,
+                target,
+            }, options: new JsonSerializerOptions(JsonSerializerDefaults.Web)),
+        };
+        request.Headers.Add("Origin", _host.BaseUrl);
+
+        var stopwatch = Stopwatch.StartNew();
+        using var response = await client.SendAsync(request);
+        stopwatch.Stop();
+        return new CollectorResponse(response.StatusCode, stopwatch.Elapsed);
+    }
+
+    private async Task WaitForRecordedEventCountAsync(string path, int expectedCount, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow.Add(timeout);
+        var actualCount = 0;
+        while (DateTime.UtcNow < deadline)
+        {
+            try
+            {
+                await using var connection = new SqliteConnection($"Data Source={_host.DatabasePath};Mode=ReadOnly;Cache=Shared;Pooling=False");
+                await connection.OpenAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = "SELECT COUNT(*) FROM searchPulseEvent WHERE path = $path";
+                command.Parameters.AddWithValue("$path", path);
+                actualCount = Convert.ToInt32(await command.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
+                if (actualCount == expectedCount)
+                {
+                    return;
+                }
+            }
+            catch (SqliteException)
+            {
+                // SQLite may briefly hold the database file while the queue worker commits a batch.
+            }
+
+            await Task.Delay(200);
+        }
+
+        Assert.Equal(expectedCount, actualCount);
+    }
+
+    private sealed record CollectorResponse(HttpStatusCode StatusCode, TimeSpan Duration);
 
     private async Task OpenBackofficeAsync(IPage page)
     {
@@ -121,6 +241,8 @@ public sealed class SearchPulseBrowserTests : IAsyncLifetime
         private Process? _process;
 
         public string BaseUrl { get; private set; } = string.Empty;
+
+        public string DatabasePath => Path.Combine(_temporaryDirectory, "Umbraco.sqlite.db");
 
         public string ReviewUrl => $"{BaseUrl}/searchpulse-review";
 
@@ -151,7 +273,7 @@ public sealed class SearchPulseBrowserTests : IAsyncLifetime
             };
             startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
             startInfo.Environment["ASPNETCORE_URLS"] = BaseUrl;
-            startInfo.Environment["ConnectionStrings__umbracoDbDSN"] = $"Data Source={Path.Combine(_temporaryDirectory, "Umbraco.sqlite.db")};Cache=Shared;Foreign Keys=True;Pooling=True";
+            startInfo.Environment["ConnectionStrings__umbracoDbDSN"] = $"Data Source={DatabasePath};Cache=Shared;Foreign Keys=True;Pooling=True";
             startInfo.Environment["ConnectionStrings__umbracoDbDSN_ProviderName"] = "Microsoft.Data.Sqlite";
 
             _process = Process.Start(startInfo) ?? throw new InvalidOperationException("Could not start the SearchPulse integration host.");
