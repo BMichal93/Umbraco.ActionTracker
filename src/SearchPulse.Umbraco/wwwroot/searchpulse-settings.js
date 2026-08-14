@@ -1,5 +1,5 @@
 import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
-import { UMB_AUTH_CONTEXT } from "@umbraco-cms/backoffice/auth";
+import { umbHttpClient } from "@umbraco-cms/backoffice/http-client";
 
 const searchPulseSettingsApi = "/umbraco/management/api/v1/searchpulse/settings";
 
@@ -11,12 +11,14 @@ class SearchPulseSettingsElement extends UmbElementMixin(HTMLElement) {
 
     async load() {
         try {
-            const response = await this.request(searchPulseSettingsApi);
-            if (!response.ok) {
+            const { data, error } = await umbHttpClient.get({
+                url: searchPulseSettingsApi,
+            });
+            if (error) {
                 throw new Error("The settings could not be loaded.");
             }
 
-            this.render((await response.json()).isEnabled);
+            this.render(data.isEnabled);
         } catch {
             this.renderError();
         }
@@ -47,12 +49,11 @@ class SearchPulseSettingsElement extends UmbElementMixin(HTMLElement) {
         statusMessage.textContent = "Saving…";
 
         try {
-            const response = await this.request(searchPulseSettingsApi, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ isEnabled }),
+            const { error } = await umbHttpClient.put({
+                url: searchPulseSettingsApi,
+                body: { isEnabled },
             });
-            if (!response.ok) {
+            if (error) {
                 throw new Error("The setting could not be saved.");
             }
 
@@ -63,19 +64,6 @@ class SearchPulseSettingsElement extends UmbElementMixin(HTMLElement) {
         }
     }
 
-    async request(url, options = {}) {
-        const authContext = await this.getContext(UMB_AUTH_CONTEXT);
-        const token = await authContext?.getLatestToken();
-
-        return fetch(url, {
-            credentials: "include",
-            ...options,
-            headers: {
-                Authorization: `Bearer ${token}`,
-                ...options.headers,
-            },
-        });
-    }
     renderError() {
         this.innerHTML = "<uui-box headline=\"Tracking\"><p>We could not load this setting. Refresh the page, or check that SearchPulse is installed and the backoffice user has access.</p></uui-box>";
     }

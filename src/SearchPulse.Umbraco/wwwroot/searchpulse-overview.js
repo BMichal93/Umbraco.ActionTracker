@@ -1,5 +1,5 @@
 import { UmbElementMixin } from "@umbraco-cms/backoffice/element-api";
-import { UMB_AUTH_CONTEXT } from "@umbraco-cms/backoffice/auth";
+import { umbHttpClient } from "@umbraco-cms/backoffice/http-client";
 
 const searchPulseManagementApi = "/umbraco/management/api/v1/searchpulse";
 
@@ -11,30 +11,19 @@ class SearchPulseOverviewElement extends UmbElementMixin(HTMLElement) {
 
     async load() {
         try {
-            const response = await this.request(`${searchPulseManagementApi}/overview`);
-            if (!response.ok) {
+            const { data, error } = await umbHttpClient.get({
+                url: searchPulseManagementApi + "/overview",
+            });
+            if (error) {
                 throw new Error("The overview could not be loaded.");
             }
 
-            this.render(await response.json());
+            this.render(data);
         } catch {
             this.renderError();
         }
     }
 
-    async request(url, options = {}) {
-        const authContext = await this.getContext(UMB_AUTH_CONTEXT);
-        const token = await authContext?.getLatestToken();
-
-        return fetch(url, {
-            credentials: "include",
-            ...options,
-            headers: {
-                Authorization: `Bearer ${token}`,
-                ...options.headers,
-            },
-        });
-    }
     renderLoading() {
         this.innerHTML = "<uui-box><p>Loading SearchPulse…</p></uui-box>";
     }
