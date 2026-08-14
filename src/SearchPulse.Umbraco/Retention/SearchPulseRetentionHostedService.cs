@@ -20,12 +20,19 @@ internal sealed class SearchPulseRetentionHostedService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await PurgeAsync(stoppingToken);
-
-        using var timer = new PeriodicTimer(CleanupPeriod);
-        while (await timer.WaitForNextTickAsync(stoppingToken))
+        try
         {
             await PurgeAsync(stoppingToken);
+
+            using var timer = new PeriodicTimer(CleanupPeriod);
+            while (await timer.WaitForNextTickAsync(stoppingToken))
+            {
+                await PurgeAsync(stoppingToken);
+            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // A normal host shutdown must not be reported as a failed background service.
         }
     }
 

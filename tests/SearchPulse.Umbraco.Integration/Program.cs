@@ -42,6 +42,12 @@ app.MapDelete("/searchpulse-review/consent", static (HttpResponse response) =>
     return Results.NoContent();
 });
 
+// These endpoints exist only in the local integration host so browser tests can exercise hosted behavior deterministically.
+app.MapPost("/searchpulse-test/stop", static (IHostApplicationLifetime applicationLifetime) =>
+{
+    applicationLifetime.StopApplication();
+    return Results.Accepted();
+});
 // This endpoint exists only in the local integration host so browser tests can exercise retention deterministically.
 app.MapPost("/searchpulse-test/purge", static (ISearchPulseRetentionService retentionService) =>
 {

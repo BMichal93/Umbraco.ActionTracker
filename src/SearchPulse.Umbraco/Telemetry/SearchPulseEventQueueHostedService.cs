@@ -21,21 +21,28 @@ internal sealed class SearchPulseEventQueueHostedService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        try
         {
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                using var scope = serviceScopeFactory.CreateScope();
-                scope.ServiceProvider.GetRequiredService<ISearchPulseEventQueueProcessor>().ProcessBatch();
-            }
-            catch (Exception exception) when (exception is not OperationCanceledException || !stoppingToken.IsCancellationRequested)
-            {
-                LogProcessingFailure(logger, exception);
-            }
+                try
+                {
+                    using var scope = serviceScopeFactory.CreateScope();
+                    scope.ServiceProvider.GetRequiredService<ISearchPulseEventQueueProcessor>().ProcessBatch();
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException || !stoppingToken.IsCancellationRequested)
+                {
+                    LogProcessingFailure(logger, exception);
+                }
 
-            await Task.Delay(
-                TimeSpan.FromMilliseconds(optionsMonitor.CurrentValue.EventProcessingIntervalMilliseconds),
-                stoppingToken);
+                await Task.Delay(
+                    TimeSpan.FromMilliseconds(optionsMonitor.CurrentValue.EventProcessingIntervalMilliseconds),
+                    stoppingToken);
+            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // A normal host shutdown must not be reported as a failed background service.
         }
     }
 }

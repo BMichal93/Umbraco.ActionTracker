@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Net.Sockets;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
@@ -205,6 +206,14 @@ public sealed class SearchPulseBrowserTests : IAsyncLifetime
         Assert.Equal(0L, Convert.ToInt64(await clearedAggregateCommand.ExecuteScalarAsync(), CultureInfo.InvariantCulture));
     }
 
+    [Fact]
+    public async Task HostedServicesStopWithoutWorkerFailure()
+    {
+        await _host.StopGracefullyAsync();
+
+        Assert.DoesNotContain("BackgroundService failed", _host.Output, StringComparison.Ordinal);
+        Assert.DoesNotContain("Unhandled exception", _host.Output, StringComparison.Ordinal);
+    }
     private HttpClient CreateCollectorClient()
     {
         var cookieContainer = new CookieContainer();
@@ -296,6 +305,8 @@ public sealed class SearchPulseBrowserTests : IAsyncLifetime
     {
         private readonly string _repositoryRoot = FindRepositoryRoot();
         private readonly string _temporaryDirectory = Path.Combine(Path.GetTempPath(), "SearchPulse.BrowserTests", Guid.NewGuid().ToString("N"));
+        private readonly object _outputLock = new();
+        private readonly StringBuilder _output = new();
         private Process? _process;
 
         public string BaseUrl { get; private set; } = string.Empty;
@@ -335,7 +346,39 @@ public sealed class SearchPulseBrowserTests : IAsyncLifetime
             startInfo.Environment["ConnectionStrings__umbracoDbDSN_ProviderName"] = "Microsoft.Data.Sqlite";
 
             _process = Process.Start(startInfo) ?? throw new InvalidOperationException("Could not start the SearchPulse integration host.");
+            _process.OutputDataReceived += (_, eventArgs) => AppendOutput(eventArgs.Data);
+            _process.ErrorDataReceived += (_, eventArgs) => AppendOutput(eventArgs.Data);
+            _process.BeginOutputReadLine();
+            _process.BeginErrorReadLine();
             await WaitForHostAsync();
+        }
+
+        public string Output { get { lock (_outputLock) { return _output.ToString(); } } }
+
+        public async Task StopGracefullyAsync()
+        {
+            if (_process is null || _process.HasExited)
+            {
+                throw new InvalidOperationException("The SearchPulse integration host is not running.");
+            }
+
+            using var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+            };
+            using var client = new HttpClient(handler)
+            {
+                BaseAddress = new Uri(BaseUrl),
+                Timeout = TimeSpan.FromSeconds(15),
+            };
+            using var response = await client.PostAsync("/searchpulse-test/stop", content: null);
+            if (response.StatusCode != HttpStatusCode.Accepted)
+            {
+                throw new InvalidOperationException($"The graceful-stop endpoint returned {(int)response.StatusCode}.");
+            }
+
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await _process.WaitForExitAsync(timeout.Token);
         }
 
         public async Task StopAsync()
@@ -356,6 +399,14 @@ public sealed class SearchPulseBrowserTests : IAsyncLifetime
                 {
                     await Task.Delay(250);
                 }
+            }
+        }
+
+        private void AppendOutput(string? value)
+        {
+            if (!string.IsNullOrEmpty(value))
+            {
+                _output.AppendLine(value);
             }
         }
 
