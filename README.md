@@ -22,6 +22,26 @@ dotnet build SearchPulse.Umbraco.sln --configuration Release
 dotnet pack src/SearchPulse.Umbraco/SearchPulse.Umbraco.csproj --configuration Release --no-build
 ```
 
+## Verification
+
+SearchPulse has no runtime infrastructure beyond the Umbraco application's existing database. The unit suite covers validation, configuration, overview composition, and aggregate-key stability:
+
+```powershell
+dotnet test SearchPulse.Umbraco.sln --configuration Release
+```
+
+The browser suite starts a clean local Umbraco host with SQLite and checks consent-gated collection, the backoffice views, data clearing, retention aggregation, all-time reporting, concurrent collection, collector latency, and graceful worker shutdown:
+
+```powershell
+dotnet pack src/SearchPulse.Umbraco/SearchPulse.Umbraco.csproj --configuration Release
+dotnet restore tests/SearchPulse.Umbraco.Integration/SearchPulse.Umbraco.Integration.csproj --no-cache
+dotnet build tests/SearchPulse.Umbraco.Integration/SearchPulse.Umbraco.Integration.csproj --configuration Release --no-restore
+dotnet build tests/SearchPulse.BrowserTests/SearchPulse.BrowserTests.csproj --configuration Release
+dotnet test tests/SearchPulse.BrowserTests/SearchPulse.BrowserTests.csproj --configuration Release --no-build
+```
+
+The browser suite is development-only and uses Playwright's local browser runtime. It does not add a package dependency to an installed Umbraco website.
+
 ## Installation and setup
 
 Install `SearchPulse.Umbraco` from NuGet in an Umbraco 17.6+ web project. SearchPulse is off by default. Add this optional retention configuration to `appsettings.json` (30 days is the default):
