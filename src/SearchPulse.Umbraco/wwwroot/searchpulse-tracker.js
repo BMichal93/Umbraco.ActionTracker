@@ -14,6 +14,7 @@ function currentPath() {
     return window.location.pathname;
 }
 
+
 async function send(type, target) {
     const payload = { type, path: currentPath() };
     if (target) {
@@ -75,14 +76,24 @@ function trackLinkClick(event) {
     }
 
     const destination = new URL(link.href, window.location.href);
-    if (destination.origin !== window.location.origin) {
-        void send("external-link-click", destination.hostname);
+    if (destination.origin === window.location.origin && link.hasAttribute("download")) {
+        void send("download-click", destination.pathname);
         return;
     }
 
-    if (link.hasAttribute("download")) {
-        void send("download-click", "download");
+    if (destination.origin !== window.location.origin) {
+        void send("external-link-click", destination.hostname);
     }
+}
+
+function trackPageView() {
+    if (!started) {
+        return;
+    }
+
+    exitTracked = false;
+    trackedScrollMilestones.clear();
+    void send("page-view");
 }
 
 function start() {
@@ -91,7 +102,7 @@ function start() {
     }
 
     started = true;
-    void send("page-view");
+    trackPageView();
     window.addEventListener("scroll", trackScroll, { passive: true });
     window.addEventListener("pagehide", trackExit, { once: true });
     document.addEventListener("click", trackLinkClick);
@@ -99,6 +110,7 @@ function start() {
 
 window.SearchPulse = Object.freeze({
     start,
+    trackPageView,
     trackAction(target) {
         if (started) {
             void send("custom-action", target);

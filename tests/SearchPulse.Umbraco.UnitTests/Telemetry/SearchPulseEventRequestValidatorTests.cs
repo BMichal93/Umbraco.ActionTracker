@@ -71,4 +71,20 @@ public sealed class SearchPulseEventRequestValidatorTests
         Assert.True(valid);
         Assert.Equal("newsletter-signup", searchPulseEvent!.Target);
     }
+
+    [Fact]
+    public void TryValidateAcceptsASafeLocalDownloadPath()
+    {
+        var request = new SearchPulseEventRequest
+        {
+            Type = "download-click",
+            Path = "/resources",
+            Target = "/downloads/searchpulse-guide.pdf",
+        };
+
+        var isValid = SearchPulseEventRequestValidator.TryValidate(request, out var searchPulseEvent);
+
+        Assert.True(isValid);
+        Assert.Equal("/downloads/searchpulse-guide.pdf", searchPulseEvent!.Target);
+    }
 }

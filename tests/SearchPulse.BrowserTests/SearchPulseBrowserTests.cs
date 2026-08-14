@@ -75,6 +75,7 @@ public sealed class SearchPulseBrowserTests : IAsyncLifetime
 
         await Expect(page.GetByText("Most viewed pages")).ToBeVisibleAsync();
         await Expect(page.GetByText("Popular interactions")).ToBeVisibleAsync();
+        await Expect(page.Locator("#searchpulse-clear")).ToHaveCountAsync(0);
         await Expect(page.GetByText("newsletter-signup")).ToBeVisibleAsync();
 
         await page.Locator("a[href=\"/umbraco/section/searchpulse/view/settings\"]").ClickAsync();

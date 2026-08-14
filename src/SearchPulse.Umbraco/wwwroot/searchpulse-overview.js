@@ -82,7 +82,7 @@ class SearchPulseOverviewElement extends UmbElementMixin(HTMLElement) {
             ".searchpulse-status-on { background: #dcfce7; color: #166534; } .searchpulse-status-off { background: #fee2e2; color: #991b1b; }",
             ".searchpulse-loading { padding: 16px; }",
             "@media (max-width: 960px) { .searchpulse-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } }",
-            "@media (max-width: 680px) { :host { padding: 16px; } .searchpulse-header { display: block; } .searchpulse-meta { margin-top: 12px; white-space: normal; } .searchpulse-toolbar { align-items: stretch; } .searchpulse-control { flex: 1 1 100%; } .searchpulse-clear { margin-left: 0; } .searchpulse-metrics, .searchpulse-grid { grid-template-columns: 1fr; } }",
+            "@media (max-width: 680px) { :host { padding: 16px; } .searchpulse-header { display: block; } .searchpulse-meta { margin-top: 12px; white-space: normal; } .searchpulse-toolbar { align-items: stretch; } .searchpulse-control { flex: 1 1 100%; } .searchpulse-metrics, .searchpulse-grid { grid-template-columns: 1fr; } }",
             "</style>",
             "<section aria-label=\"SearchPulse overview\">",
             "<header class=\"searchpulse-header\"><div><h1 class=\"searchpulse-title\">SearchPulse</h1><p class=\"searchpulse-subtitle\">Anonymous engagement signals for " + escapeHtml(overview.rangeLabel) + ".</p></div><div>" + status + "<p class=\"searchpulse-meta\">Updated " + formatUpdatedAt(overview.generatedAtUtc) + "</p></div></header>",

@@ -1,6 +1,6 @@
 # SearchPulse for Umbraco
 
-SearchPulse is a free, self-hosted Umbraco package for small teams that need simple content engagement signals: visits, reading depth, exits, and important clicks.
+SearchPulse is a free, self-hosted Umbraco package for small teams that need simple content engagement signals: page views, reading depth, page exits, and important clicks.
 
 ## Status
 
@@ -57,10 +57,10 @@ Include the tracker in the public layout and start it only after the same consen
 </script>
 ```
 
-The server independently checks `IAnalyticsConsentProvider`; the browser flag alone never enables collection. The client sends only the current path and a fixed event type. It excludes query strings, fragments, visitor identifiers, IP addresses, and arbitrary properties.
+The server independently checks `IAnalyticsConsentProvider`; the browser flag alone never enables collection. The client sends only the current path and a fixed event type. Page-view counts are not unique visitors or sessions, and page-exit counts are browser lifecycle signals rather than an exit-rate calculation. It excludes query strings, fragments, visitor identifiers, IP addresses, and arbitrary properties.
 Accepted events are first written to a package-owned durable database queue. A hosted Umbraco service processes bounded batches into reporting data, so reporting work does not run on the visitor request. The queue defaults to 100,000 events as a site-protection limit and uses short leases to coordinate multiple Umbraco nodes. If that limit is reached, SearchPulse returns a retryable response rather than allowing analytics to exhaust the site database.
 
-To record a meaningful local business action after tracking has started, call `window.SearchPulse.trackAction("newsletter-signup")`. Action names can contain lowercase letters, digits, dots, and hyphens only; this prevents the client from turning events into a free-form data channel.
+To record a meaningful local business action after tracking has started, call `window.SearchPulse.trackAction("newsletter-signup")`. Single-page applications can call `window.SearchPulse.trackPageView()` after a client-side route change. Downloads are recorded by their same-origin path without query strings. Action names can contain lowercase letters, digits, dots, and hyphens only; this prevents the client from turning events into a free-form data channel.
 
 After the consent integration and layout include are ready, open the **SearchPulse** section in Umbraco, then use its single switch to turn tracking on. The Overview shows page views, exits, reading milestones, up to five most-viewed pages, and up to five popular anonymous interactions for the last 30 days.
 

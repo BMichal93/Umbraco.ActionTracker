@@ -28,7 +28,8 @@ public sealed class SearchPulseMigrationRunner(
         var migrationPlan = new MigrationPlan("SearchPulse");
         migrationPlan.From(string.Empty)
             .To<CreateSearchPulseEventTableMigration>("searchpulse-initial")
-            .To<CreateSearchPulseEventQueueTableMigration>("searchpulse-event-queue");
+            .To<CreateSearchPulseEventQueueTableMigration>("searchpulse-event-queue")
+            .To<CreateSearchPulseReportingIndexesMigration>("searchpulse-reporting-indexes");
 
         var upgrader = new Upgrader(migrationPlan);
         await upgrader.ExecuteAsync(migrationPlanExecutor, coreScopeProvider, keyValueService);

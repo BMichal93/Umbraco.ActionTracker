@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
 namespace SearchPulse.Umbraco.Telemetry;
@@ -66,8 +66,9 @@ public sealed partial class SearchPulseEventRequestValidator
         }
 
         return value.Length <= MaximumTargetLength
-            && TargetPattern().IsMatch(value)
-            && type is SearchPulseEventType.ExternalLinkClick or SearchPulseEventType.DownloadClick or SearchPulseEventType.CustomAction;
+            && (type == SearchPulseEventType.DownloadClick
+                ? IsSafePath(value)
+                : TargetPattern().IsMatch(value) && type is SearchPulseEventType.ExternalLinkClick or SearchPulseEventType.CustomAction);
     }
 
     [GeneratedRegex("^[a-z0-9][a-z0-9.-]*$", RegexOptions.CultureInvariant)]
