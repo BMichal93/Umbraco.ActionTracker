@@ -33,13 +33,42 @@ public sealed class SearchPulseOverviewServiceTests
     }
 
     [Fact]
-    public void GetReportingStartUtcUsesAnInclusiveThirtyDayWindow()
+    public void BuildPopularInteractionsCanSortByName()
     {
-        var generatedAtUtc = new DateTime(2026, 8, 11, 12, 0, 0, DateTimeKind.Utc);
+        var interactions = new[]
+        {
+            Count(SearchPulseEventType.DownloadClick, "zebra", 1),
+            Count(SearchPulseEventType.CustomAction, "beta", 9),
+            Count(SearchPulseEventType.CustomAction, "alpha", 2),
+        };
 
-        var startUtc = SearchPulseOverviewService.GetReportingStartUtc(generatedAtUtc);
+        var popular = SearchPulseOverviewService.BuildPopularInteractions(interactions, SearchPulseOverviewSort.Name);
 
-        Assert.Equal(new DateTime(2026, 7, 12, 12, 0, 0, DateTimeKind.Utc), startUtc);
+        Assert.Collection(
+            popular,
+            item => Assert.Equal(("CustomAction", "alpha"), (item.EventType, item.Target)),
+            item => Assert.Equal(("CustomAction", "beta"), (item.EventType, item.Target)),
+            item => Assert.Equal(("DownloadClick", "zebra"), (item.EventType, item.Target)));
+    }
+
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    [InlineData(7, true)]
+    [InlineData(30, true)]
+    [InlineData(90, true)]
+    [InlineData(14, false)]
+    public void IsSupportedRangeOnlyAcceptsTheDashboardRanges(int rangeDays, bool expected)
+    {
+        Assert.Equal(expected, SearchPulseOverviewService.IsSupportedRange(rangeDays));
+    }
+
+    [Fact]
+    public void GetReportingStartUtcReturnsNullForAllTime()
+    {
+        var startUtc = SearchPulseOverviewService.GetReportingStartUtc(DateTime.UtcNow, 0);
+
+        Assert.Null(startUtc);
     }
 
     private static SearchPulseOverviewService.SearchPulseInteractionCount Count(SearchPulseEventType eventType, string? target, int interactions) =>

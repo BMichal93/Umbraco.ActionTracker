@@ -1,9 +1,11 @@
 namespace SearchPulse.Umbraco.Overview;
 
 /// <summary>
-/// Produces the minimal backoffice summary without exposing event-level visitor data.
+/// Produces and clears the small backoffice reporting summary without exposing visitor-level data.
 /// </summary>
 public interface ISearchPulseOverviewService
 {
-    SearchPulseOverview GetLastThirtyDays();
+    SearchPulseOverview GetOverview(int rangeDays, SearchPulseOverviewSort sort);
+
+    void Clear(int rangeDays);
 }
