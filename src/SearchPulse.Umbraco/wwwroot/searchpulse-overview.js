@@ -63,7 +63,7 @@ class SearchPulseOverviewElement extends UmbElementMixin(HTMLElement) {
             ".searchpulse-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; padding: 16px; margin-bottom: 20px; background: var(--uui-color-surface, #fff); border: 1px solid var(--uui-color-border, #d1d5db); border-radius: 8px; }",
             ".searchpulse-control { display: grid; gap: 6px; min-width: 160px; font-size: 13px; font-weight: 600; }",
             ".searchpulse-control select { min-height: 36px; padding: 0 10px; border: 1px solid var(--uui-color-border, #cbd5e1); border-radius: 4px; background: #fff; color: inherit; }",
-            ".searchpulse-clear { margin-left: auto; }",
+
             ".searchpulse-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }",
             ".searchpulse-metric { padding: 18px; border: 1px solid var(--uui-color-border, #dbe3ee); border-radius: 8px; background: linear-gradient(145deg, #fff, #f8fafc); }",
             ".searchpulse-metric-label { display: block; color: var(--uui-color-text-alt, #64748b); font-size: 13px; }",
@@ -86,7 +86,7 @@ class SearchPulseOverviewElement extends UmbElementMixin(HTMLElement) {
             "</style>",
             "<section aria-label=\"SearchPulse overview\">",
             "<header class=\"searchpulse-header\"><div><h1 class=\"searchpulse-title\">SearchPulse</h1><p class=\"searchpulse-subtitle\">Anonymous engagement signals for " + escapeHtml(overview.rangeLabel) + ".</p></div><div>" + status + "<p class=\"searchpulse-meta\">Updated " + formatUpdatedAt(overview.generatedAtUtc) + "</p></div></header>",
-            "<div class=\"searchpulse-toolbar\"><label class=\"searchpulse-control\">Time range<select id=\"searchpulse-range\"><option value=\"1\">Last 24 hours</option><option value=\"7\">Last 7 days</option><option value=\"30\">Last 30 days</option><option value=\"90\">Last 90 days</option><option value=\"0\">All time</option></select></label><label class=\"searchpulse-control\">Sort tables by<select id=\"searchpulse-sort\"><option value=\"count\">Highest count</option><option value=\"name\">Name</option></select></label><uui-button id=\"searchpulse-refresh\" look=\"outline\">Refresh</uui-button><uui-button id=\"searchpulse-clear\" class=\"searchpulse-clear\" look=\"outline\" color=\"danger\">Clear selected data</uui-button></div>",
+            "<div class=\"searchpulse-toolbar\"><label class=\"searchpulse-control\">Time range<select id=\"searchpulse-range\"><option value=\"1\">Last 24 hours</option><option value=\"7\">Last 7 days</option><option value=\"30\">Last 30 days</option><option value=\"90\">Last 90 days</option><option value=\"0\">All time</option></select></label><label class=\"searchpulse-control\">Sort tables by<select id=\"searchpulse-sort\"><option value=\"count\">Highest count</option><option value=\"name\">Name</option></select></label><uui-button id=\"searchpulse-refresh\" look=\"outline\">Refresh</uui-button></div>",
             metrics(overview.totals),
             "<div class=\"searchpulse-grid\"><section class=\"searchpulse-section\"><header class=\"searchpulse-section-header\"><h2>Most viewed pages</h2></header><table class=\"searchpulse-table\"><thead><tr><th>#</th><th>Page</th><th class=\"searchpulse-number\">Views</th></tr></thead><tbody>" + topPages + "</tbody></table></section>",
             "<section class=\"searchpulse-section\"><header class=\"searchpulse-section-header\"><h2>Popular interactions</h2></header><table class=\"searchpulse-table\"><thead><tr><th>#</th><th>Interaction</th><th class=\"searchpulse-number\">Count</th></tr></thead><tbody>" + interactions + "</tbody></table></section></div>",
@@ -104,7 +104,7 @@ class SearchPulseOverviewElement extends UmbElementMixin(HTMLElement) {
             void this.load();
         });
         this.querySelector("#searchpulse-refresh").addEventListener("click", () => void this.load());
-        this.querySelector("#searchpulse-clear").addEventListener("click", () => void this.clear());
+
     }
 
     renderError(message = "We could not load the overview. Refresh the page, or check that SearchPulse is installed and the backoffice user has access.") {
