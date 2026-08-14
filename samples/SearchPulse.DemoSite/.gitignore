@@ -1,0 +1,8 @@
+bin/
+obj/
+logs/
+umbraco/Data/
+umbraco/Logs/
+wwwroot/media/
+wwwroot/umbraco/appsettings-schema*.json
+umbraco-package-schema.json

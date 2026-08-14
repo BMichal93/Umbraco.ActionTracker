@@ -22,6 +22,10 @@ dotnet build SearchPulse.Umbraco.sln --configuration Release
 dotnet pack src/SearchPulse.Umbraco/SearchPulse.Umbraco.csproj --configuration Release --no-build
 ```
 
+## Demo site
+
+A standalone three-page manual review site is available at [samples/SearchPulse.DemoSite/README.md](samples/SearchPulse.DemoSite/README.md). It includes consent-gated examples of every supported signal.
+
 ## Verification
 
 SearchPulse has no runtime infrastructure beyond the Umbraco application's existing database. The unit suite covers validation, configuration, overview composition, and aggregate-key stability:
