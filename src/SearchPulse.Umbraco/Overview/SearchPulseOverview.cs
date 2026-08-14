@@ -16,16 +16,16 @@ public sealed record SearchPulseOverview(
 /// Plain-language totals for the selected reporting window.
 /// </summary>
 public sealed record SearchPulseOverviewTotals(
-    int PageViews,
-    int Exits,
-    int Reached25Percent,
-    int Reached50Percent,
-    int Reached75Percent);
+    long PageViews,
+    long Exits,
+    long Reached25Percent,
+    long Reached50Percent,
+    long Reached75Percent);
 
 /// <summary>
 /// A page's view count in the reporting window.
 /// </summary>
-public sealed record SearchPulsePageSummary(string Path, int PageViews);
+public sealed record SearchPulsePageSummary(string Path, long PageViews);
 
 /// <summary>
 /// A frequently used anonymous interaction in the reporting window.
@@ -33,7 +33,7 @@ public sealed record SearchPulsePageSummary(string Path, int PageViews);
 public sealed record SearchPulseInteractionSummary(
     string EventType,
     string? Target,
-    int Interactions);
+    long Interactions);
 
 public enum SearchPulseOverviewSort
 {

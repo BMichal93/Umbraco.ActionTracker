@@ -62,7 +62,7 @@ Accepted events are first written to a package-owned durable database queue. A h
 
 To record a meaningful local business action after tracking has started, call `window.SearchPulse.trackAction("newsletter-signup")`. Single-page applications can call `window.SearchPulse.trackPageView()` after a client-side route change. Downloads are recorded by their same-origin path without query strings. Action names can contain lowercase letters, digits, dots, and hyphens only; this prevents the client from turning events into a free-form data channel.
 
-After the consent integration and layout include are ready, open the **SearchPulse** section in Umbraco, then use its single switch to turn tracking on. The Overview shows page views, exits, reading milestones, up to five most-viewed pages, and up to five popular anonymous interactions for the last 30 days.
+After the consent integration and layout include are ready, open the **SearchPulse** section in Umbraco, then use its single switch to turn tracking on. The Overview shows page views, exits, reading milestones, up to five most-viewed pages, and up to five popular anonymous interactions. Its 1, 7, 30, and 90-day ranges use exact detailed rows. The All time range also includes compact UTC daily aggregates created before detailed rows expire. Clearing All SearchPulse data removes both detailed and aggregated records.
 
 ## Privacy boundary
 

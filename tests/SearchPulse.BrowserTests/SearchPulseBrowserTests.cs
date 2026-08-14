@@ -148,6 +148,63 @@ public sealed class SearchPulseBrowserTests : IAsyncLifetime
         await WaitForRecordedEventCountAsync(path, requestCount, TimeSpan.FromSeconds(20));
     }
 
+    [Fact]
+    public async Task RetentionArchivesExpiredRowsIntoDailyAggregates()
+    {
+        var occurredUtc = DateTime.UtcNow.Date.AddDays(-31).AddHours(12);
+        await using (var connection = new SqliteConnection($"Data Source={_host.DatabasePath};Cache=Shared;Pooling=False"))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = "INSERT INTO searchPulseEvent (occurredUtc, eventType, path, target) VALUES ($occurredUtc, $eventType, $path, NULL), ($occurredUtc, $eventType, $path, NULL)";
+            command.Parameters.AddWithValue("$occurredUtc", occurredUtc);
+            command.Parameters.AddWithValue("$eventType", "PageView");
+            command.Parameters.AddWithValue("$path", "/searchpulse-retention/archive-check");
+            await command.ExecuteNonQueryAsync();
+        }
+
+        using var client = CreateCollectorClient();
+        using var response = await client.PostAsync("/searchpulse-test/purge", content: null);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        await using var verificationConnection = new SqliteConnection($"Data Source={_host.DatabasePath};Mode=ReadOnly;Cache=Shared;Pooling=False");
+        await verificationConnection.OpenAsync();
+        await using var aggregateCommand = verificationConnection.CreateCommand();
+        aggregateCommand.CommandText = "SELECT eventCount FROM searchPulseDailyAggregate WHERE occurredDateUtc = $occurredDateUtc AND eventType = $eventType AND path = $path";
+        aggregateCommand.Parameters.AddWithValue("$occurredDateUtc", occurredUtc.Date);
+        aggregateCommand.Parameters.AddWithValue("$eventType", "PageView");
+        aggregateCommand.Parameters.AddWithValue("$path", "/searchpulse-retention/archive-check");
+        var eventCount = await aggregateCommand.ExecuteScalarAsync();
+
+        Assert.Equal(2L, Convert.ToInt64(eventCount, CultureInfo.InvariantCulture));
+        await using var rawCommand = verificationConnection.CreateCommand();
+        rawCommand.CommandText = "SELECT COUNT(*) FROM searchPulseEvent WHERE path = $path";
+        rawCommand.Parameters.AddWithValue("$path", "/searchpulse-retention/archive-check");
+        Assert.Equal(0L, Convert.ToInt64(await rawCommand.ExecuteScalarAsync(), CultureInfo.InvariantCulture));
+
+        var browser = Assert.IsAssignableFrom<IBrowser>(_browser);
+        var context = await browser.NewContextAsync(new BrowserNewContextOptions { IgnoreHTTPSErrors = true });
+        var page = await context.NewPageAsync();
+        await OpenBackofficeAsync(page);
+        await page.GotoAsync(_host.OverviewUrl);
+        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "SearchPulse" })).ToBeVisibleAsync();
+        await page.Locator("#searchpulse-range").SelectOptionAsync("0");
+        await Expect(page.Locator(".searchpulse-metric-value").First).ToHaveTextAsync("2");
+
+        await page.GotoAsync(_host.SettingsUrl);
+        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Settings" })).ToBeVisibleAsync();
+        page.Dialog += (_, dialog) => dialog.AcceptAsync();
+        await page.Locator("#clear-range").SelectOptionAsync("0");
+        var clearResponse = page.WaitForResponseAsync(response => response.Url.Contains("/searchpulse/settings/data", StringComparison.Ordinal) && response.Status == 204);
+        await page.Locator("#clear-data").ClickAsync();
+        await clearResponse;
+        await context.DisposeAsync();
+
+        await using var clearedAggregateCommand = verificationConnection.CreateCommand();
+        clearedAggregateCommand.CommandText = "SELECT COUNT(*) FROM searchPulseDailyAggregate";
+        Assert.Equal(0L, Convert.ToInt64(await clearedAggregateCommand.ExecuteScalarAsync(), CultureInfo.InvariantCulture));
+    }
+
     private HttpClient CreateCollectorClient()
     {
         var cookieContainer = new CookieContainer();

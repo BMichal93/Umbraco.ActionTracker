@@ -19,31 +19,48 @@ public sealed class SearchPulseOverviewService(
         var generatedAtUtc = DateTime.UtcNow;
         var since = GetReportingStartUtc(generatedAtUtc, rangeDays);
         object sinceParameter = since.HasValue ? since.Value : DBNull.Value;
-        var pageOrderBy = sort == SearchPulseOverviewSort.Name
-            ? "path ASC"
-            : "COUNT(*) DESC, path ASC";
-        var interactionOrderBy = sort == SearchPulseOverviewSort.Name
-            ? "eventType ASC, target ASC"
-            : "COUNT(*) DESC, eventType ASC, target ASC";
 
         using var scope = scopeProvider.CreateScope();
-
         var eventCounts = scope.Database.Fetch<SearchPulseEventCount>(
-            $"SELECT eventType AS EventType, COUNT(*) AS Total FROM {SearchPulseEventDto.TableName} WHERE (@0 IS NULL OR occurredUtc >= @0) GROUP BY eventType",
+            $"SELECT eventType AS EventType, COUNT(*) AS Total FROM {SearchPulseEventDto.TableName} " +
+            "WHERE (@0 IS NULL OR occurredUtc >= @0) GROUP BY eventType",
             sinceParameter);
         var pageCounts = scope.Database.Fetch<SearchPulsePageCount>(
-            $"SELECT path AS Path, COUNT(*) AS PageViews FROM {SearchPulseEventDto.TableName} WHERE (@0 IS NULL OR occurredUtc >= @0) AND eventType = @1 GROUP BY path ORDER BY {pageOrderBy}",
+            $"SELECT path AS Path, COUNT(*) AS PageViews FROM {SearchPulseEventDto.TableName} " +
+            "WHERE (@0 IS NULL OR occurredUtc >= @0) AND eventType = @1 GROUP BY path",
             sinceParameter,
             SearchPulseEventType.PageView.ToString());
         var interactionCounts = scope.Database.Fetch<SearchPulseInteractionCount>(
-            $"SELECT eventType AS EventType, target AS Target, COUNT(*) AS Interactions FROM {SearchPulseEventDto.TableName} WHERE (@0 IS NULL OR occurredUtc >= @0) AND target IS NOT NULL AND target <> '' AND eventType IN (@1, @2, @3) GROUP BY eventType, target ORDER BY {interactionOrderBy}",
+            $"SELECT eventType AS EventType, target AS Target, COUNT(*) AS Interactions FROM {SearchPulseEventDto.TableName} " +
+            "WHERE (@0 IS NULL OR occurredUtc >= @0) AND target IS NOT NULL AND target <> '' " +
+            "AND eventType IN (@1, @2, @3) GROUP BY eventType, target",
             sinceParameter,
             SearchPulseEventType.ExternalLinkClick.ToString(),
             SearchPulseEventType.DownloadClick.ToString(),
             SearchPulseEventType.CustomAction.ToString());
+
+        if (rangeDays == 0)
+        {
+            eventCounts.AddRange(scope.Database.Fetch<SearchPulseEventCount>(
+                $"SELECT eventType AS EventType, SUM(eventCount) AS Total FROM {SearchPulseDailyAggregateDto.TableName} GROUP BY eventType"));
+            pageCounts.AddRange(scope.Database.Fetch<SearchPulsePageCount>(
+                $"SELECT path AS Path, SUM(eventCount) AS PageViews FROM {SearchPulseDailyAggregateDto.TableName} " +
+                "WHERE eventType = @0 GROUP BY path",
+                SearchPulseEventType.PageView.ToString()));
+            interactionCounts.AddRange(scope.Database.Fetch<SearchPulseInteractionCount>(
+                $"SELECT eventType AS EventType, target AS Target, SUM(eventCount) AS Interactions " +
+                $"FROM {SearchPulseDailyAggregateDto.TableName} WHERE target <> '' " +
+                "AND eventType IN (@0, @1, @2) GROUP BY eventType, target",
+                SearchPulseEventType.ExternalLinkClick.ToString(),
+                SearchPulseEventType.DownloadClick.ToString(),
+                SearchPulseEventType.CustomAction.ToString()));
+        }
+
         scope.Complete();
 
-        var totals = eventCounts.ToDictionary(item => item.EventType, item => item.Total, StringComparer.Ordinal);
+        var totals = eventCounts
+            .GroupBy(item => item.EventType, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Sum(item => item.Total), StringComparer.Ordinal);
         return new SearchPulseOverview(
             settingsService.IsEnabled(),
             rangeDays,
@@ -54,13 +71,11 @@ public sealed class SearchPulseOverviewService(
                 GetTotal(SearchPulseEventType.Scroll25),
                 GetTotal(SearchPulseEventType.Scroll50),
                 GetTotal(SearchPulseEventType.Scroll75)),
-            pageCounts.Take(MaximumTopPages)
-                .Select(item => new SearchPulsePageSummary(item.Path, item.PageViews))
-                .ToArray(),
+            BuildTopPages(pageCounts, sort),
             BuildPopularInteractions(interactionCounts, sort),
             generatedAtUtc);
 
-        int GetTotal(SearchPulseEventType eventType) => totals.GetValueOrDefault(eventType.ToString());
+        long GetTotal(SearchPulseEventType eventType) => totals.GetValueOrDefault(eventType.ToString());
     }
 
     public static bool IsSupportedRange(int rangeDays) => rangeDays is 0 or 1 or 7 or 30 or 90;
@@ -75,12 +90,40 @@ public sealed class SearchPulseOverviewService(
         _ => $"Last {rangeDays} days",
     };
 
+    internal static IReadOnlyList<SearchPulsePageSummary> BuildTopPages(
+        IEnumerable<SearchPulsePageCount> pageCounts,
+        SearchPulseOverviewSort sort = SearchPulseOverviewSort.Count)
+    {
+        var combinedPages = pageCounts
+            .GroupBy(item => item.Path, StringComparer.Ordinal)
+            .Select(group => new SearchPulsePageCount
+            {
+                Path = group.Key,
+                PageViews = group.Sum(item => item.PageViews),
+            });
+        var orderedPages = sort == SearchPulseOverviewSort.Name
+            ? combinedPages.OrderBy(item => item.Path, StringComparer.Ordinal)
+            : combinedPages.OrderByDescending(item => item.PageViews).ThenBy(item => item.Path, StringComparer.Ordinal);
+
+        return orderedPages
+            .Take(MaximumTopPages)
+            .Select(item => new SearchPulsePageSummary(item.Path, item.PageViews))
+            .ToArray();
+    }
+
     internal static IReadOnlyList<SearchPulseInteractionSummary> BuildPopularInteractions(
         IEnumerable<SearchPulseInteractionCount> interactionCounts,
         SearchPulseOverviewSort sort = SearchPulseOverviewSort.Count)
     {
         var supportedInteractions = interactionCounts
-            .Where(item => item.Target is not null && IsSupportedInteractionType(item.EventType));
+            .Where(item => !string.IsNullOrEmpty(item.Target) && IsSupportedInteractionType(item.EventType))
+            .GroupBy(item => (EventType: item.EventType, Target: item.Target!), StringTupleComparer.Ordinal)
+            .Select(group => new SearchPulseInteractionCount
+            {
+                EventType = group.Key.EventType,
+                Target = group.Key.Target,
+                Interactions = group.Sum(item => item.Interactions),
+            });
 
         var orderedInteractions = sort == SearchPulseOverviewSort.Name
             ? supportedInteractions
@@ -100,18 +143,32 @@ public sealed class SearchPulseOverviewService(
     private static bool IsSupportedInteractionType(string eventType) =>
         eventType is nameof(SearchPulseEventType.ExternalLinkClick) or nameof(SearchPulseEventType.DownloadClick) or nameof(SearchPulseEventType.CustomAction);
 
-    private sealed class SearchPulseEventCount
+    private sealed class StringTupleComparer : IEqualityComparer<(string EventType, string Target)>
+    {
+        public static readonly StringTupleComparer Ordinal = new();
+
+        public bool Equals((string EventType, string Target) x, (string EventType, string Target) y) =>
+            StringComparer.Ordinal.Equals(x.EventType, y.EventType)
+            && StringComparer.Ordinal.Equals(x.Target, y.Target);
+
+        public int GetHashCode((string EventType, string Target) value) =>
+            HashCode.Combine(
+                StringComparer.Ordinal.GetHashCode(value.EventType),
+                StringComparer.Ordinal.GetHashCode(value.Target));
+    }
+
+    internal sealed class SearchPulseEventCount
     {
         public string EventType { get; init; } = string.Empty;
 
-        public int Total { get; init; }
+        public long Total { get; init; }
     }
 
-    private sealed class SearchPulsePageCount
+    internal sealed class SearchPulsePageCount
     {
         public string Path { get; init; } = string.Empty;
 
-        public int PageViews { get; init; }
+        public long PageViews { get; init; }
     }
 
     internal sealed class SearchPulseInteractionCount
@@ -120,6 +177,6 @@ public sealed class SearchPulseOverviewService(
 
         public string? Target { get; init; }
 
-        public int Interactions { get; init; }
+        public long Interactions { get; init; }
     }
 }

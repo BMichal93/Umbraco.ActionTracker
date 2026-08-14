@@ -28,6 +28,11 @@ public sealed class SearchPulseDataManagementService(IScopeProvider scopeProvide
             $"DELETE FROM {SearchPulseEventQueueDto.TableName} " +
             "WHERE processedUtc IS NOT NULL AND (@0 IS NULL OR occurredUtc >= @0)",
             sinceParameter);
+        if (rangeDays == 0)
+        {
+            scope.Database.Delete<SearchPulseDailyAggregateDto>("WHERE 1 = 1");
+        }
+
         scope.Complete();
     }
 }

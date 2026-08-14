@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.DataProtection;
 using SearchPulse.Umbraco.Consent;
 using SearchPulse.Umbraco.Integration;
+using SearchPulse.Umbraco.Retention;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "umbraco", "Data", "SearchPulseIntegration-DataProtection-Keys");
@@ -41,6 +42,12 @@ app.MapDelete("/searchpulse-review/consent", static (HttpResponse response) =>
     return Results.NoContent();
 });
 
+// This endpoint exists only in the local integration host so browser tests can exercise retention deterministically.
+app.MapPost("/searchpulse-test/purge", static (ISearchPulseRetentionService retentionService) =>
+{
+    retentionService.PurgeExpiredEvents();
+    return Results.NoContent();
+});
 app.MapGet("/searchpulse-review/{**path}", static () => Results.Content("""
 <!doctype html>
 <html lang="en">
