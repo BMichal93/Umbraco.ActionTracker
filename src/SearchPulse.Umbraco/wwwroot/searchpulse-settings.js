@@ -13,6 +13,7 @@ class SearchPulseSettingsElement extends UmbElementMixin(HTMLElement) {
         try {
             const { data, error } = await umbHttpClient.get({
                 url: searchPulseSettingsApi,
+                security: [{ scheme: "bearer", type: "http" }],
             });
             if (error) {
                 throw new Error("The settings could not be loaded.");
@@ -51,6 +52,7 @@ class SearchPulseSettingsElement extends UmbElementMixin(HTMLElement) {
         try {
             const { error } = await umbHttpClient.put({
                 url: searchPulseSettingsApi,
+                security: [{ scheme: "bearer", type: "http" }],
                 body: { isEnabled },
             });
             if (error) {

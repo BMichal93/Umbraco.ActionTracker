@@ -13,6 +13,7 @@ class SearchPulseOverviewElement extends UmbElementMixin(HTMLElement) {
         try {
             const { data, error } = await umbHttpClient.get({
                 url: searchPulseManagementApi + "/overview",
+                security: [{ scheme: "bearer", type: "http" }],
             });
             if (error) {
                 throw new Error("The overview could not be loaded.");
