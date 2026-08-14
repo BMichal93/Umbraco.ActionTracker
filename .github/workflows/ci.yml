@@ -24,6 +24,11 @@ jobs:
       - run: dotnet build tests/SearchPulse.PackageSmoke/SearchPulse.PackageSmoke.csproj --configuration Release --no-restore
       - run: dotnet restore tests/SearchPulse.Umbraco.Integration/SearchPulse.Umbraco.Integration.csproj
       - run: dotnet build tests/SearchPulse.Umbraco.Integration/SearchPulse.Umbraco.Integration.csproj --configuration Release --no-restore
+      - run: dotnet restore tests/SearchPulse.BrowserTests/SearchPulse.BrowserTests.csproj
+      - run: dotnet build tests/SearchPulse.BrowserTests/SearchPulse.BrowserTests.csproj --configuration Release --no-restore
+      - shell: pwsh
+        run: ./tests/SearchPulse.BrowserTests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+      - run: dotnet test tests/SearchPulse.BrowserTests/SearchPulse.BrowserTests.csproj --configuration Release --no-build --verbosity normal
       - shell: pwsh
         run: ./tests/SearchPulse.Umbraco.Integration/verify.ps1 -ResetDatabase
 
