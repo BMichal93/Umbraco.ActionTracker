@@ -1,0 +1,114 @@
+﻿@using System.Collections.Generic
+@using System.Linq
+@using Umbraco.Cms.Core.Models.PublishedContent
+@using Umbraco.Cms.Web.Common.Views
+@using Umbraco.Extensions
+@inherits UmbracoViewPage<IPublishedContent>
+@{
+    Layout = null;
+    string heading = Model.Value<string>("heading") ?? Model.Name;
+    string introduction = Model.Value<string>("introduction") ?? string.Empty;
+    string actionName = Model.Value<string>("actionName") ?? "demo-action";
+    string actionLabel = Model.Value<string>("actionLabel") ?? "Record demo action";
+    string detail = Model.Value<string>("detail") ?? string.Empty;
+    IPublishedContent root = Model.Root();
+    IEnumerable<IPublishedContent> navigation = new[] { root }.Concat(root.Children().Where(content => content.IsVisible()));
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@Model.Name - SearchPulse demo</title>
+    <style>
+        :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #162033; background: #f4f7fb; }
+        body { margin: 0; }
+        header { background: #162a5c; color: #fff; }
+        .shell { width: min(100% - 40px, 980px); margin: 0 auto; }
+        .brand { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 22px 0; }
+        .brand strong { font-size: 20px; }
+        .nav { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 18px; }
+        .nav-link { color: #dce6ff; text-decoration: none; padding: 8px 12px; border-radius: 6px; }
+        .nav-link:hover, .nav-link.active { background: #314b91; color: #fff; }
+        main { margin: 36px auto; padding: 36px; border: 1px solid #dbe3ef; border-radius: 14px; background: #fff; box-shadow: 0 12px 36px rgb(20 35 70 / 8%); }
+        h1 { margin-top: 0; font-size: clamp(30px, 5vw, 44px); letter-spacing: -.03em; }
+        .lead { color: #53627d; font-size: 19px; }
+        .consent { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 26px 0; padding: 16px; border-radius: 10px; background: #f0f5ff; }
+        .status { margin: 0; font-weight: 700; }
+        .status.on { color: #18733f; }
+        .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 28px 0; }
+        button, .button-link { border: 1px solid #234ba4; border-radius: 7px; padding: 10px 14px; color: #173d91; background: #fff; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+        button.primary { color: #fff; background: #234ba4; }
+        .signal-list { margin: 32px 0; padding: 18px 22px; border-left: 4px solid #7da0ff; background: #f7f9fd; }
+        .long-content { margin-top: 38px; }
+        footer { padding: 24px 0 56px; color: #65738a; font-size: 14px; }
+        @@media (max-width: 620px) { .shell { width: min(100% - 28px, 980px); } main { padding: 24px; } .brand, .consent { align-items: flex-start; flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="shell">
+            <div class="brand"><strong>SearchPulse demo</strong><span>Anonymous Umbraco engagement signals</span></div>
+            <nav class="nav" aria-label="Primary navigation">
+                @foreach (IPublishedContent navigationPage in navigation)
+                {
+                    string navClass = navigationPage.Key == Model.Key ? "nav-link active" : "nav-link";
+                    <a class="@navClass" href="@navigationPage.Url(mode: UrlMode.Relative)">@navigationPage.Name</a>
+                }
+            </nav>
+        </div>
+    </header>
+    <main class="shell">
+        <h1>@heading</h1>
+        <p class="lead">@introduction</p>
+        <section class="consent" aria-label="Analytics consent demo">
+            <div><p id="consent-status" class="status"></p><small>Tracking is disabled until this local demo consent is granted.</small></div>
+            <button id="consent-button" type="button"></button>
+        </section>
+        <div class="actions" aria-label="Tracked actions">
+            <button class="primary" type="button" data-searchpulse-action="@actionName">@actionLabel</button>
+            <a class="button-link" href="https://umbraco.com" target="_blank" rel="noopener">Open Umbraco.com</a>
+            <a class="button-link" href="/downloads/searchpulse-demo-guide.txt" download>Download the demo guide</a>
+        </div>
+        <section class="signal-list">
+            <strong>What this page demonstrates</strong><p>@detail</p>
+            <ul>
+                <li>Page view when consent is granted.</li>
+                <li>Page exit when navigating away or closing the tab.</li>
+                <li>Scroll milestones at 25%, 50%, and 75%.</li>
+                <li>External-link click, download click, and the named <code>@actionName</code> local action.</li>
+            </ul>
+        </section>
+        <section class="long-content">
+            <h2>Reading-depth test area</h2>
+            @foreach (int _ in Enumerable.Range(0, 12))
+            {
+                <p>Scroll through this deliberately long demo content to record the 25%, 50%, and 75% reading milestones. SearchPulse records the milestone once per page view after the existing consent decision allows tracking.</p>
+            }
+        </section>
+    </main>
+    <footer class="shell">Open <a href="/umbraco">Umbraco backoffice</a>, then select SearchPulse to review the recorded signals.</footer>
+    <script>
+        const hasConsent = document.cookie.split("; ").includes("SearchPulseDemoConsent=yes");
+        window.SearchPulseConsent = hasConsent;
+    </script>
+    <script src="/App_Plugins/SearchPulse/searchpulse-tracker.js"></script>
+    <script>
+        const consentButton = document.getElementById("consent-button");
+        const consentStatus = document.getElementById("consent-status");
+        consentButton.textContent = hasConsent ? "Disable demo consent" : "Enable demo consent";
+        consentStatus.textContent = hasConsent ? "Analytics consent is enabled. SearchPulse is tracking anonymous signals." : "Analytics consent is disabled.";
+        consentStatus.classList.toggle("on", hasConsent);
+        consentButton.addEventListener("click", async () => {
+            await fetch("/demo/consent", { method: hasConsent ? "DELETE" : "POST", credentials: "same-origin" });
+            location.reload();
+        });
+        document.querySelectorAll("[data-searchpulse-action]").forEach(element => {
+            element.addEventListener("click", () => window.SearchPulse.trackAction(element.dataset.searchpulseAction));
+        });
+        if (hasConsent) {
+            window.SearchPulse.start();
+        }
+    </script>
+</body>
+</html>

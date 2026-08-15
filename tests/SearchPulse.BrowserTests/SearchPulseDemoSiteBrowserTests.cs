@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using Microsoft.Data.Sqlite;
@@ -43,8 +43,8 @@ public sealed class SearchPulseDemoSiteBrowserTests : IAsyncLifetime
         await page.GotoAsync(_host.BaseUrl);
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "SearchPulse demo home" })).ToBeVisibleAsync();
         await Expect(page.GetByText("Analytics consent is disabled.")).ToBeVisibleAsync();
-        await Expect(page.Locator("a[href='/services']")).ToBeVisibleAsync();
-        await Expect(page.Locator("a[href='/contact']")).ToBeVisibleAsync();
+        await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Services" })).ToBeVisibleAsync();
+        await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Contact" })).ToBeVisibleAsync();
         await Expect(page.Locator("a[download]")).ToBeVisibleAsync();
         await Expect(page.Locator("a[href='https://umbraco.com']")).ToBeVisibleAsync();
 
@@ -57,13 +57,13 @@ public sealed class SearchPulseDemoSiteBrowserTests : IAsyncLifetime
         await page.Locator("a[download]").ClickAsync();
         await download;
 
-        await page.Locator("a[href='/services']").ClickAsync();
-        await page.WaitForURLAsync("**/services");
+        await page.GetByRole(AriaRole.Link, new() { Name = "Services" }).ClickAsync();
+        await page.WaitForURLAsync("**/services**");
         await page.EvaluateAsync("window.scrollTo(0, document.body.scrollHeight)");
         await page.WaitForTimeoutAsync(500);
         await page.Locator("[data-searchpulse-action='request-pricing']").ClickAsync();
-        await page.Locator("a[href='/contact']").ClickAsync();
-        await page.WaitForURLAsync("**/contact");
+        await page.GetByRole(AriaRole.Link, new() { Name = "Contact" }).ClickAsync();
+        await page.WaitForURLAsync("**/contact**");
         await page.Locator("[data-searchpulse-action='newsletter-signup']").ClickAsync();
 
         await WaitForSupportedSignalsAsync(TimeSpan.FromSeconds(30));
@@ -138,7 +138,7 @@ public sealed class SearchPulseDemoSiteBrowserTests : IAsyncLifetime
         {
             Directory.CreateDirectory(_temporaryDirectory);
             var port = GetUnusedPort();
-            BaseUrl = $"https://127.0.0.1:{port}";
+            BaseUrl = $"https://localhost:{port}";
             var demoDirectory = Path.Combine(_repositoryRoot, "samples", "SearchPulse.DemoSite");
             var executable = Path.Combine(demoDirectory, "bin", "Release", "net10.0", "SearchPulse.DemoSite.exe");
             if (!File.Exists(executable))
@@ -155,6 +155,7 @@ public sealed class SearchPulseDemoSiteBrowserTests : IAsyncLifetime
             };
             startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
             startInfo.Environment["ASPNETCORE_URLS"] = BaseUrl;
+            startInfo.Environment["Umbraco__CMS__WebRouting__UmbracoApplicationUrl"] = BaseUrl;
             startInfo.Environment["ConnectionStrings__umbracoDbDSN"] = $"Data Source={DatabasePath};Cache=Shared;Foreign Keys=True;Pooling=True";
             startInfo.Environment["ConnectionStrings__umbracoDbDSN_ProviderName"] = "Microsoft.Data.Sqlite";
             startInfo.Environment["SearchPulseDemo__DataDirectory"] = Path.Combine(_temporaryDirectory, "data-protection");
@@ -242,3 +243,4 @@ public sealed class SearchPulseDemoSiteBrowserTests : IAsyncLifetime
         }
     }
 }
+
