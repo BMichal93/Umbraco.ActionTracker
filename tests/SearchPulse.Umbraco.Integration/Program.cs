@@ -64,6 +64,14 @@ app.MapGet("/searchpulse-test/event-count", static (IScopeProvider scopeProvider
     scope.Complete();
     return Results.Ok(count);
 });
+app.MapGet("/searchpulse-test/searchpulse-schema", static (IScopeProvider scopeProvider) =>
+{
+    using var scope = scopeProvider.CreateScope();
+    var contextCount = scope.Database.ExecuteScalar<long>($"SELECT COUNT(*) FROM {SearchPulseEventDto.TableName} WHERE contentKey IS NOT NULL");
+    var goalCount = scope.Database.ExecuteScalar<long>("SELECT COUNT(*) FROM searchPulseGoal");
+    scope.Complete();
+    return Results.Ok(new { ContextEvents = contextCount, GoalRows = goalCount });
+});
 app.MapGet("/searchpulse-review/{**path}", static () => Results.Content("""
 <!doctype html>
 <html lang="en" data-searchpulse-content-key="review-home">

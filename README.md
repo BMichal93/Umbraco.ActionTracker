@@ -40,6 +40,8 @@ The browser suite starts a clean local Umbraco host with SQLite and checks conse
 dotnet pack src/SearchPulse.Umbraco/SearchPulse.Umbraco.csproj --configuration Release
 dotnet restore tests/SearchPulse.Umbraco.Integration/SearchPulse.Umbraco.Integration.csproj --no-cache
 dotnet build tests/SearchPulse.Umbraco.Integration/SearchPulse.Umbraco.Integration.csproj --configuration Release --no-restore
+# Verify an alpha.19 SQLite database upgrades through the current schema.
+powershell -NoProfile -File tests/SearchPulse.Umbraco.Integration/verify-upgrade.ps1
 dotnet build tests/SearchPulse.BrowserTests/SearchPulse.BrowserTests.csproj --configuration Release
 dotnet test tests/SearchPulse.BrowserTests/SearchPulse.BrowserTests.csproj --configuration Release --no-build
 ```

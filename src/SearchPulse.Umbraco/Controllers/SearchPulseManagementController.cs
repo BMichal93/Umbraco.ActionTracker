@@ -72,14 +72,8 @@ public sealed class SearchPulseManagementController(
     [HttpDelete("goals/{id:long}")]
     public IActionResult DeleteGoal(long id) => goalService!.Delete(id) ? NoContent() : NotFound();
 
-    private static bool TryValidateGoal(SearchPulseGoalRequest request, out SearchPulseEventType eventType)
-    {
-        eventType = default;
-        if (request is null || string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length > 80 || string.IsNullOrWhiteSpace(request.Target) || request.Target.Trim().Length > 80) return false;
-        if (!Enum.TryParse(request.EventType, true, out eventType)) return false;
-        if (eventType is not (SearchPulseEventType.CustomAction or SearchPulseEventType.FormSubmit or SearchPulseEventType.FormSuccess or SearchPulseEventType.DownloadClick or SearchPulseEventType.ExternalLinkClick or SearchPulseEventType.SiteSearch)) return false;
-        return System.Text.RegularExpressions.Regex.IsMatch(request.Target.Trim(), "^[a-z0-9][a-z0-9._:/-]*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
-    }
+    private static bool TryValidateGoal(SearchPulseGoalRequest request, out SearchPulseEventType eventType) =>
+        SearchPulseGoalValidator.TryValidate(request?.Name, request?.EventType, request?.Target, out eventType);
 
     private static bool TryParseSort(string? value, out SearchPulseOverviewSort sort)
     {

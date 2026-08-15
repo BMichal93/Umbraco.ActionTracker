@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using Microsoft.Data.Sqlite;
@@ -54,6 +55,8 @@ public sealed class SearchPulseDemoSiteBrowserTests : IAsyncLifetime
         await page.Locator("[data-searchpulse-action='book-consultation']").ClickAsync();
         await page.Locator("#demo-email").FillAsync("review@example.test");
         await page.Locator("[data-searchpulse-form] button[type='submit']").ClickAsync();
+        await page.Locator("#demo-search button[type='submit']").ClickAsync();
+        await page.WaitForTimeoutAsync(16_000);
         await page.Locator("#programmatic-download").ClickAsync();
         await page.EvaluateAsync("window.SearchPulse.trackVideoPlay('product-tour')");
         await page.Locator("a[href='https://umbraco.com']").ClickAsync();
@@ -87,12 +90,17 @@ public sealed class SearchPulseDemoSiteBrowserTests : IAsyncLifetime
             "DownloadClick",
             "CustomAction",
             "FormSubmit",
+            "FormSuccess",
+            "SiteSearch",
+            "ActiveEngagement",
             "VideoPlay",
         };
         var expectedTargets = new[]
         {
             "book-consultation",
             "demo-enquiry",
+            "products",
+            "seconds-15",
             "product-tour",
             "request-pricing",
             "newsletter-signup",
@@ -100,6 +108,9 @@ public sealed class SearchPulseDemoSiteBrowserTests : IAsyncLifetime
             "/downloads/searchpulse-demo-guide.txt",
         };
         var deadline = DateTime.UtcNow.Add(timeout);
+        HashSet<string> lastSignals = new(StringComparer.Ordinal);
+        var lastContentCount = -1;
+        string? lastError = null;
         while (DateTime.UtcNow < deadline)
         {
             try
@@ -115,21 +126,27 @@ public sealed class SearchPulseDemoSiteBrowserTests : IAsyncLifetime
                     signals.Add(reader.GetString(0));
                 }
 
+                await using var contentCommand = connection.CreateCommand();
+                contentCommand.CommandText = "SELECT COUNT(*) FROM searchPulseEvent WHERE contentKey IS NOT NULL";
+                var contentCount = Convert.ToInt32(await contentCommand.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
+                lastSignals = signals;
+                lastContentCount = contentCount;
                 if (expectedTypes.All(type => signals.Any(signal => signal.StartsWith(type + "|", StringComparison.Ordinal)))
-                    && expectedTargets.All(target => signals.Any(signal => signal.EndsWith("|" + target, StringComparison.Ordinal))))
+                    && expectedTargets.All(target => signals.Any(signal => signal.EndsWith("|" + target, StringComparison.Ordinal))) && contentCount > 0)
                 {
                     return;
                 }
             }
-            catch (SqliteException)
+            catch (SqliteException exception)
             {
+                lastError = exception.Message;
                 // SQLite can briefly hold the file while the durable queue worker commits a batch.
             }
 
             await Task.Delay(200);
         }
 
-        throw new TimeoutException("The demo did not persist every supported SearchPulse signal.");
+        throw new TimeoutException($"The demo did not persist every supported SearchPulse signal. Signals: {string.Join(", ", lastSignals.OrderBy(value => value, StringComparer.Ordinal))}; content events: {lastContentCount}; last SQLite error: {lastError}.");
     }
 
     private sealed class SearchPulseDemoHost
@@ -251,4 +268,3 @@ public sealed class SearchPulseDemoSiteBrowserTests : IAsyncLifetime
         }
     }
 }
-

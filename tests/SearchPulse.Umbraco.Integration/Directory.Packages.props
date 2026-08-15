@@ -9,11 +9,12 @@
     -->
     <UmbracoCmsVersion Condition="'$(UmbracoCmsVersion)' == ''">17.*</UmbracoCmsVersion>
     <UmbracoAppLocalIcuVersion Condition="'$(UmbracoAppLocalIcuVersion)' == ''">72.1.0.3</UmbracoAppLocalIcuVersion>
+    <SearchPulsePackageVersion Condition="'$(SearchPulsePackageVersion)' == ''">0.1.0-alpha.22</SearchPulsePackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Umbraco.Cms" Version="$(UmbracoCmsVersion)" />
     <PackageVersion Include="Umbraco.Cms.DevelopmentMode.Backoffice" Version="$(UmbracoCmsVersion)" />
-    <PackageVersion Include="SearchPulse.Umbraco" Version="0.1.0-alpha.20" />
+    <PackageVersion Include="SearchPulse.Umbraco" Version="$(SearchPulsePackageVersion)" />
     <PackageVersion Include="Microsoft.ICU.ICU4C.Runtime" Version="$(UmbracoAppLocalIcuVersion)" />
   </ItemGroup>
 </Project>

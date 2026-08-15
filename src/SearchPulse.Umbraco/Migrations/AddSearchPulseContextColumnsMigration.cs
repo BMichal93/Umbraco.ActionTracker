@@ -1,3 +1,4 @@
+using System.Globalization;
 using SearchPulse.Umbraco.Telemetry;
 using Umbraco.Cms.Infrastructure.Migrations;
 
@@ -10,27 +11,31 @@ public sealed class AddSearchPulseContextColumnsMigration(IMigrationContext cont
 {
     protected override Task MigrateAsync()
     {
-        Alter.Table(SearchPulseEventDto.TableName)
-            .AddColumn("contentKey").AsString(64).Nullable()
-            .AddColumn("referrerDomain").AsString(64).Nullable()
-            .AddColumn("utmSource").AsString(64).Nullable()
-            .AddColumn("utmMedium").AsString(64).Nullable()
-            .AddColumn("utmCampaign").AsString(64).Nullable()
-            .Do();
-        Alter.Table(SearchPulseEventQueueDto.TableName)
-            .AddColumn("contentKey").AsString(64).Nullable()
-            .AddColumn("referrerDomain").AsString(64).Nullable()
-            .AddColumn("utmSource").AsString(64).Nullable()
-            .AddColumn("utmMedium").AsString(64).Nullable()
-            .AddColumn("utmCampaign").AsString(64).Nullable()
-            .Do();
-        Alter.Table(SearchPulseDailyAggregateDto.TableName)
-            .AddColumn("contentKey").AsString(64).Nullable()
-            .AddColumn("referrerDomain").AsString(64).Nullable()
-            .AddColumn("utmSource").AsString(64).Nullable()
-            .AddColumn("utmMedium").AsString(64).Nullable()
-            .AddColumn("utmCampaign").AsString(64).Nullable()
-            .Do();
+        foreach (var tableName in new[]
+        {
+            SearchPulseEventDto.TableName,
+            SearchPulseEventQueueDto.TableName,
+            SearchPulseDailyAggregateDto.TableName
+        })
+        {
+            AddBoundedColumn(tableName, "contentKey");
+            AddBoundedColumn(tableName, "referrerDomain");
+            AddBoundedColumn(tableName, "utmSource");
+            AddBoundedColumn(tableName, "utmMedium");
+            AddBoundedColumn(tableName, "utmCampaign");
+        }
+
         return Task.CompletedTask;
+    }
+
+    private void AddBoundedColumn(string tableName, string columnName)
+    {
+        if (ColumnExists(tableName, columnName))
+        {
+            return;
+        }
+
+        var columnDefinition = $"{SqlSyntax.GetQuotedColumnName(columnName)} NVARCHAR(64) NULL";
+        Execute.Sql(string.Format(CultureInfo.InvariantCulture, SqlSyntax.AddColumn, SqlSyntax.GetQuotedTableName(tableName), columnDefinition)).Do();
     }
 }
