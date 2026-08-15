@@ -66,7 +66,7 @@ app.MapGet("/searchpulse-test/event-count", static (IScopeProvider scopeProvider
 });
 app.MapGet("/searchpulse-review/{**path}", static () => Results.Content("""
 <!doctype html>
-<html lang="en">
+<html lang="en" data-searchpulse-content-key="review-home">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -85,7 +85,7 @@ app.MapGet("/searchpulse-review/{**path}", static () => Results.Content("""
         <h1>SearchPulse review site</h1>
         <p>This test-only page lets you generate anonymous signals for the SearchPulse overview.</p>
         <p id="consent-status" class="status"></p>
-        <div class="actions"><button id="consent-button" class="primary"></button><button id="action-button">Track newsletter signup</button><a href="https://example.com">External link</a><a href="/searchpulse-review/brochure" download>Download link</a></div>
+        <div class="actions"><button id="consent-button" class="primary"></button><button id="action-button">Track newsletter signup</button><button id="form-success">Track form success</button><button id="site-search">Track site search</button><a href="https://example.com">External link</a><a href="/searchpulse-review/brochure" download>Download link</a></div>
         <nav><a href="/searchpulse-review">Home</a><a href="/searchpulse-review/products">Products</a><a href="/searchpulse-review/contact">Contact</a></nav>
         <p>Navigate between the pages above, use the action button, and return to the SearchPulse backoffice overview. Scroll down to record the scroll milestones.</p>
         <div class="spacer"></div>
@@ -106,6 +106,8 @@ app.MapGet("/searchpulse-review/{**path}", static () => Results.Content("""
     </script>
     <script src="/App_Plugins/SearchPulse/searchpulse-tracker.js"></script>
     <script>
+        document.getElementById("form-success").addEventListener("click", () => window.SearchPulse.trackFormSuccess("contact"));
+        document.getElementById("site-search").addEventListener("click", () => window.SearchPulse.trackSiteSearch("products"));
         document.getElementById("action-button").addEventListener("click", () => window.SearchPulse.trackAction("newsletter-signup"));
     </script>
 </body>

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using SearchPulse.Umbraco.Configuration;
 using SearchPulse.Umbraco.Consent;
 using SearchPulse.Umbraco.Overview;
+using SearchPulse.Umbraco.Goals;
 using SearchPulse.Umbraco.Retention;
 using SearchPulse.Umbraco.Settings;
 using SearchPulse.Umbraco.Telemetry;
@@ -28,6 +29,7 @@ public static class SearchPulseServiceCollectionExtensions
         services.TryAddScoped<ISearchPulseSettingsService, SearchPulseSettingsService>();
         services.TryAddScoped<ISearchPulseDataManagementService, SearchPulseDataManagementService>();
         services.TryAddScoped<ISearchPulseOverviewService, SearchPulseOverviewService>();
+        services.TryAddScoped<ISearchPulseGoalService, SearchPulseGoalService>();
         services.TryAddScoped<ISearchPulseRetentionService, SearchPulseRetentionService>();
         services.AddHostedService<SearchPulseEventQueueHostedService>();
         services.AddHostedService<SearchPulseRetentionHostedService>();

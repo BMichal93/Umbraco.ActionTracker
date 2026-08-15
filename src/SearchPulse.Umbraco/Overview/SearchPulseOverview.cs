@@ -1,8 +1,5 @@
 namespace SearchPulse.Umbraco.Overview;
 
-/// <summary>
-/// The concise reporting readout used by the SearchPulse overview.
-/// </summary>
 public sealed record SearchPulseOverview(
     bool IsEnabled,
     int RangeDays,
@@ -10,33 +7,16 @@ public sealed record SearchPulseOverview(
     SearchPulseOverviewTotals Totals,
     IReadOnlyList<SearchPulsePageSummary> TopPages,
     IReadOnlyList<SearchPulseInteractionSummary> PopularInteractions,
-    DateTime GeneratedAtUtc);
+    DateTime GeneratedAtUtc,
+    IReadOnlyList<SearchPulseGoalSummary>? Goals = null,
+    IReadOnlyList<SearchPulseAcquisitionSummary>? Acquisition = null,
+    IReadOnlyList<SearchPulseContentSummary>? ContentPerformance = null);
 
-/// <summary>
-/// Plain-language totals for the selected reporting window.
-/// </summary>
-public sealed record SearchPulseOverviewTotals(
-    long PageViews,
-    long Exits,
-    long Reached25Percent,
-    long Reached50Percent,
-    long Reached75Percent);
-
-/// <summary>
-/// A page's view count in the reporting window.
-/// </summary>
+public sealed record SearchPulseOverviewTotals(long PageViews, long Exits, long Reached25Percent, long Reached50Percent, long Reached75Percent);
 public sealed record SearchPulsePageSummary(string Path, long PageViews);
+public sealed record SearchPulseInteractionSummary(string EventType, string? Target, long Interactions);
+public sealed record SearchPulseGoalSummary(long Id, string Name, string EventType, string Target, bool IsEnabled, long Completions);
+public sealed record SearchPulseAcquisitionSummary(string Source, string Medium, string Campaign, string ReferrerDomain, long Interactions);
+public sealed record SearchPulseContentSummary(string ContentKey, long PageViews, long Interactions);
 
-/// <summary>
-/// A frequently used anonymous interaction in the reporting window.
-/// </summary>
-public sealed record SearchPulseInteractionSummary(
-    string EventType,
-    string? Target,
-    long Interactions);
-
-public enum SearchPulseOverviewSort
-{
-    Count,
-    Name,
-}
+public enum SearchPulseOverviewSort { Count, Name }

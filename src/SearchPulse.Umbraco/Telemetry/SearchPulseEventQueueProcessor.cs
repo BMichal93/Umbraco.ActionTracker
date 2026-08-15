@@ -81,6 +81,11 @@ public sealed class SearchPulseEventQueueProcessor(
             EventType = queueEvent.EventType,
             Path = queueEvent.Path,
             Target = queueEvent.Target,
+            ContentKey = queueEvent.ContentKey,
+            ReferrerDomain = queueEvent.ReferrerDomain,
+            UtmSource = queueEvent.UtmSource,
+            UtmMedium = queueEvent.UtmMedium,
+            UtmCampaign = queueEvent.UtmCampaign,
         });
         scope.Database.Execute(
             $"DELETE FROM {SearchPulseEventQueueDto.TableName} WHERE id = @0 AND processedUtc = @1",

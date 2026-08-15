@@ -1,7 +1,7 @@
 namespace SearchPulse.Umbraco.Telemetry;
 
 /// <summary>
-/// The small, supported set of anonymous content signals collected by SearchPulse.
+/// The supported set of anonymous content signals collected by SearchPulse.
 /// </summary>
 public enum SearchPulseEventType
 {
@@ -14,5 +14,9 @@ public enum SearchPulseEventType
     DownloadClick,
     CustomAction,
     FormSubmit,
+    FormSuccess,
     VideoPlay,
+    SiteSearch,
+    ActiveEngagement,
+    LowEngagementExit,
 }

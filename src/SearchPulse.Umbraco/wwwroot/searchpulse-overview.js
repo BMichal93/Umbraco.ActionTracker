@@ -49,6 +49,9 @@ class SearchPulseOverviewElement extends UmbElementMixin(HTMLElement) {
             ? emptyRow("No interactions in this period.", 2)
             : overview.popularInteractions.map((interaction, index) =>
                 "<tr><td>" + (index + 1) + "</td><td>" + formatInteraction(interaction) + "</td><td class=\"searchpulse-number\">" + interaction.interactions + "</td></tr>").join("");
+        const goals = (overview.goals || []).length === 0 ? emptyRow("No goals configured.", 3) : overview.goals.map(goal => "<tr><td>" + escapeHtml(goal.name) + "</td><td>" + escapeHtml(goal.eventType) + " / <code>" + escapeHtml(goal.target) + "</code></td><td class=\"searchpulse-number\">" + goal.completions + "</td></tr>").join("");
+        const acquisition = (overview.acquisition || []).length === 0 ? emptyRow("No acquisition dimensions recorded.", 4) : overview.acquisition.map(item => "<tr><td>" + escapeHtml(item.source) + "</td><td>" + escapeHtml(item.medium) + "</td><td>" + escapeHtml(item.campaign) + "</td><td class=\"searchpulse-number\">" + item.interactions + "</td></tr>").join("");
+        const content = (overview.contentPerformance || []).length === 0 ? emptyRow("No content attribution recorded.", 3) : overview.contentPerformance.map(item => "<tr><td><code>" + escapeHtml(item.contentKey) + "</code></td><td class=\"searchpulse-number\">" + item.pageViews + "</td><td class=\"searchpulse-number\">" + item.interactions + "</td></tr>").join("");
         const status = overview.isEnabled
             ? "<span class=\"searchpulse-status searchpulse-status-on\">Tracking on</span>"
             : "<span class=\"searchpulse-status searchpulse-status-off\">Tracking off</span>";
@@ -90,6 +93,8 @@ class SearchPulseOverviewElement extends UmbElementMixin(HTMLElement) {
             metrics(overview.totals),
             "<div class=\"searchpulse-grid\"><section class=\"searchpulse-section\"><header class=\"searchpulse-section-header\"><h2>Most viewed pages</h2></header><table class=\"searchpulse-table\"><thead><tr><th>#</th><th>Page</th><th class=\"searchpulse-number\">Views</th></tr></thead><tbody>" + topPages + "</tbody></table></section>",
             "<section class=\"searchpulse-section\"><header class=\"searchpulse-section-header\"><h2>Popular interactions</h2></header><table class=\"searchpulse-table\"><thead><tr><th>#</th><th>Interaction</th><th class=\"searchpulse-number\">Count</th></tr></thead><tbody>" + interactions + "</tbody></table></section></div>",
+            "<div class=\"searchpulse-grid\"><section class=\"searchpulse-section\"><header class=\"searchpulse-section-header\"><h2>Goals</h2></header><table class=\"searchpulse-table\"><thead><tr><th>Name</th><th>Signal</th><th class=\"searchpulse-number\">Completions</th></tr></thead><tbody>" + goals + "</tbody></table></section><section class=\"searchpulse-section\"><header class=\"searchpulse-section-header\"><h2>Acquisition</h2></header><table class=\"searchpulse-table\"><thead><tr><th>Source</th><th>Medium</th><th>Campaign</th><th class=\"searchpulse-number\">Events</th></tr></thead><tbody>" + acquisition + "</tbody></table></section></div>",
+            "<section class=\"searchpulse-section\"><header class=\"searchpulse-section-header\"><h2>Content attribution</h2></header><table class=\"searchpulse-table\"><thead><tr><th>Content key</th><th class=\"searchpulse-number\">Views</th><th class=\"searchpulse-number\">Interactions</th></tr></thead><tbody>" + content + "</tbody></table></section>",
             "</section>",
         ].join("");
 

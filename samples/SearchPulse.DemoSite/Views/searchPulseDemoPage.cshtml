@@ -1,4 +1,4 @@
-﻿@using System.Collections.Generic
+@using System.Collections.Generic
 @using System.Linq
 @using Umbraco.Cms.Core.Models.PublishedContent
 @using Umbraco.Cms.Web.Common.Views
@@ -11,11 +11,12 @@
     string actionName = Model.Value<string>("actionName") ?? "demo-action";
     string actionLabel = Model.Value<string>("actionLabel") ?? "Record demo action";
     string detail = Model.Value<string>("detail") ?? string.Empty;
+    string contentKey = Model.Key.ToString("N");
     IPublishedContent root = Model.Root();
     IEnumerable<IPublishedContent> navigation = new[] { root }.Concat(root.Children().Where(content => content.IsVisible()));
 }
 <!doctype html>
-<html lang="en">
+<html lang="en" data-searchpulse-content-key="@contentKey">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -108,7 +109,8 @@
             await fetch("/demo/consent", { method: hasConsent ? "DELETE" : "POST", credentials: "same-origin" });
             location.reload();
         });
-        document.querySelector("[data-searchpulse-form]").addEventListener("submit", event => event.preventDefault());
+        document.querySelector("[data-searchpulse-form]").addEventListener("submit", event => { event.preventDefault(); window.SearchPulse.trackFormSuccess("demo-enquiry"); });
+        document.getElementById("demo-search").addEventListener("submit", event => { event.preventDefault(); window.SearchPulse.trackSiteSearch("products"); });
         document.getElementById("programmatic-download").addEventListener("click", () => window.SearchPulse.trackDownload("/downloads/searchpulse-demo-guide.txt"));
         if (hasConsent) {
             window.SearchPulse.start();

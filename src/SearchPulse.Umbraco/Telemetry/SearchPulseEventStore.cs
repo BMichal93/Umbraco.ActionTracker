@@ -18,23 +18,23 @@ public sealed class SearchPulseEventStore(
         new EventId(1003, "SearchPulseQueueFull"),
         "SearchPulse durable queue reached its configured capacity of {QueueCapacity}; new events are being rejected with HTTP 503.");
 
-    public Task<SearchPulseEventRecordResult> RecordAsync(
-        SearchPulseEvent searchPulseEvent,
-        CancellationToken cancellationToken = default)
+    public Task<SearchPulseEventRecordResult> RecordAsync(SearchPulseEvent searchPulseEvent, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
         var options = optionsMonitor.CurrentValue;
-        object targetParameter = (object?)searchPulseEvent.Target ?? DBNull.Value;
         using var scope = scopeProvider.CreateScope();
         var inserted = scope.Database.Execute(
-            $"INSERT INTO {SearchPulseEventQueueDto.TableName} (occurredUtc, eventType, path, target) " +
-            $"SELECT @0, @1, @2, @3 WHERE (SELECT COUNT(*) FROM {SearchPulseEventQueueDto.TableName} " +
-            "WHERE processedUtc IS NULL) < @4",
+            $"INSERT INTO {SearchPulseEventQueueDto.TableName} (occurredUtc, eventType, path, target, contentKey, referrerDomain, utmSource, utmMedium, utmCampaign) " +
+            $"SELECT @0, @1, @2, @3, @4, @5, @6, @7, @8 WHERE (SELECT COUNT(*) FROM {SearchPulseEventQueueDto.TableName} WHERE processedUtc IS NULL) < @9",
             DateTime.UtcNow,
             searchPulseEvent.Type.ToString(),
             searchPulseEvent.Path,
-            targetParameter,
+            (object?)searchPulseEvent.Target ?? DBNull.Value,
+            (object?)searchPulseEvent.ContentKey ?? DBNull.Value,
+            (object?)searchPulseEvent.ReferrerDomain ?? DBNull.Value,
+            (object?)searchPulseEvent.UtmSource ?? DBNull.Value,
+            (object?)searchPulseEvent.UtmMedium ?? DBNull.Value,
+            (object?)searchPulseEvent.UtmCampaign ?? DBNull.Value,
             options.MaximumQueuedEvents);
         scope.Complete();
 
@@ -53,8 +53,7 @@ public sealed class SearchPulseEventStore(
     {
         using var scope = scopeProvider.CreateScope();
         var queueStatus = scope.Database.FirstOrDefault<SearchPulseQueueStatus>(
-            $"SELECT COUNT(*) AS PendingEvents, MIN(occurredUtc) AS OldestPendingEventUtc " +
-            $"FROM {SearchPulseEventQueueDto.TableName} WHERE processedUtc IS NULL")
+            $"SELECT COUNT(*) AS PendingEvents, MIN(occurredUtc) AS OldestPendingEventUtc FROM {SearchPulseEventQueueDto.TableName} WHERE processedUtc IS NULL")
             ?? new SearchPulseQueueStatus(0, null);
         scope.Complete();
         return queueStatus;

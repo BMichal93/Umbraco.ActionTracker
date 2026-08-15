@@ -30,7 +30,9 @@ public sealed class SearchPulseMigrationRunner(
             .To<CreateSearchPulseEventTableMigration>("searchpulse-initial")
             .To<CreateSearchPulseEventQueueTableMigration>("searchpulse-event-queue")
             .To<CreateSearchPulseReportingIndexesMigration>("searchpulse-reporting-indexes")
-            .To<CreateSearchPulseDailyAggregateTableMigration>("searchpulse-daily-aggregates");
+            .To<CreateSearchPulseDailyAggregateTableMigration>("searchpulse-daily-aggregates")
+            .To<AddSearchPulseContextColumnsMigration>("searchpulse-context-columns")
+            .To<CreateSearchPulseGoalTableMigration>("searchpulse-goals");
 
         var upgrader = new Upgrader(migrationPlan);
         await upgrader.ExecuteAsync(migrationPlanExecutor, coreScopeProvider, keyValueService);
