@@ -96,7 +96,7 @@ public sealed class SearchPulseBrowserTests : IAsyncLifetime
         page.Dialog += (_, dialog) => dialog.AcceptAsync();
         await page.Locator("#clear-range").SelectOptionAsync("0");
         var clearResponse = page.WaitForResponseAsync(response => response.Url.Contains("/searchpulse/settings/data", StringComparison.Ordinal) && response.Status == 204);
-        await page.Locator("#clear-data").ClickAsync();
+        await page.Locator("#clear").ClickAsync();
         await clearResponse;
 
         await page.GotoAsync(_host.OverviewUrl);
@@ -197,7 +197,7 @@ public sealed class SearchPulseBrowserTests : IAsyncLifetime
         page.Dialog += (_, dialog) => dialog.AcceptAsync();
         await page.Locator("#clear-range").SelectOptionAsync("0");
         var clearResponse = page.WaitForResponseAsync(response => response.Url.Contains("/searchpulse/settings/data", StringComparison.Ordinal) && response.Status == 204);
-        await page.Locator("#clear-data").ClickAsync();
+        await page.Locator("#clear").ClickAsync();
         await clearResponse;
         await context.DisposeAsync();
 
