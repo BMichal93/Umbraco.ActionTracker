@@ -107,4 +107,24 @@ public sealed class SearchPulseEventRequestValidatorTests
         Assert.True(isValid);
         Assert.Equal(target, searchPulseEvent!.Target);
     }
+
+    [Theory]
+    [InlineData("form-submit", "contact enquiry")]
+    [InlineData("video-play", "ProductTour")]
+    [InlineData("form-submit", "person@example.test")]
+    [InlineData("download-click", "/downloads/guide.pdf?email=person@example.test")]
+    public void TryValidateRejectsTargetsThatCouldBecomePersonalOrFreeFormData(string eventType, string target)
+    {
+        var request = new SearchPulseEventRequest
+        {
+            Type = eventType,
+            Path = "/offers",
+            Target = target,
+        };
+
+        var isValid = SearchPulseEventRequestValidator.TryValidate(request, out var searchPulseEvent);
+
+        Assert.False(isValid);
+        Assert.Null(searchPulseEvent);
+    }
 }

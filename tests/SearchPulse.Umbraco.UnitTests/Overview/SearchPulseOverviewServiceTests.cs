@@ -109,4 +109,21 @@ public sealed class SearchPulseOverviewServiceTests
 
     private static SearchPulseOverviewService.SearchPulseInteractionCount Count(SearchPulseEventType eventType, string? target, long interactions) =>
         new() { EventType = eventType.ToString(), Target = target, Interactions = interactions };
+
+    [Fact]
+    public void BuildPopularInteractionsIncludesFormAndVideoSignals()
+    {
+        var interactions = new[]
+        {
+            Count(SearchPulseEventType.FormSubmit, "contact-enquiry", 6),
+            Count(SearchPulseEventType.VideoPlay, "product-tour", 5),
+        };
+
+        var popular = SearchPulseOverviewService.BuildPopularInteractions(interactions);
+
+        Assert.Collection(
+            popular,
+            item => Assert.Equal(("FormSubmit", "contact-enquiry", 6L), (item.EventType, item.Target, item.Interactions)),
+            item => Assert.Equal(("VideoPlay", "product-tour", 5L), (item.EventType, item.Target, item.Interactions)));
+    }
 }

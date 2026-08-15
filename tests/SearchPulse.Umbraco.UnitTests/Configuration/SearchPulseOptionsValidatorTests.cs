@@ -72,4 +72,14 @@ public sealed class SearchPulseOptionsValidatorTests
 
         Assert.False(result.Succeeded);
     }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(99)]
+    public void ValidateAcceptsWarningThresholdAtBothSupportedBoundaries(int threshold)
+    {
+        var result = _validator.Validate(null, new SearchPulseOptions { QueueWarningThresholdPercent = threshold });
+
+        Assert.True(result.Succeeded);
+    }
 }

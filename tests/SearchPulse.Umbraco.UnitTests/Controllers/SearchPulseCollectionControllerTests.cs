@@ -67,6 +67,24 @@ public sealed class SearchPulseCollectionControllerTests
     }
 
     [Fact]
+    public async Task CollectAsyncRejectsMalformedPayloadAfterConsentWithoutWritingToTheQueue()
+    {
+        var consentProvider = new StubConsentProvider(true);
+        var store = new RecordingEventStore();
+        var controller = CreateController(true, consentProvider, store, "https://website.test");
+        var request = new SearchPulseEventRequest
+        {
+            Type = "page-view",
+            Path = "/offers?email=person@example.test",
+        };
+
+        var result = await controller.CollectAsync(request, CancellationToken.None);
+
+        Assert.IsType<BadRequestResult>(result);
+        Assert.Equal(1, consentProvider.CallCount);
+        Assert.Empty(store.Events);
+    }
+    [Fact]
     public async Task CollectAsyncRejectsCrossOriginRequestsBeforeConsentCheck()
     {
         var consentProvider = new StubConsentProvider(true);
