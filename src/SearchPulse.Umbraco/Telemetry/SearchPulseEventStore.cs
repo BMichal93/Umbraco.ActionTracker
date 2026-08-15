@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SearchPulse.Umbraco.Configuration;
 using Umbraco.Cms.Infrastructure.Scoping;
@@ -9,8 +10,14 @@ namespace SearchPulse.Umbraco.Telemetry;
 /// </summary>
 public sealed class SearchPulseEventStore(
     IScopeProvider scopeProvider,
-    IOptionsMonitor<SearchPulseOptions> optionsMonitor) : ISearchPulseEventStore
+    IOptionsMonitor<SearchPulseOptions> optionsMonitor,
+    ILogger<SearchPulseEventStore> logger) : ISearchPulseEventStore
 {
+    private static readonly Action<ILogger, int, Exception?> LogQueueFull = LoggerMessage.Define<int>(
+        LogLevel.Warning,
+        new EventId(1003, "SearchPulseQueueFull"),
+        "SearchPulse durable queue reached its configured capacity of {QueueCapacity}; new events are being rejected with HTTP 503.");
+
     public Task<SearchPulseEventRecordResult> RecordAsync(
         SearchPulseEvent searchPulseEvent,
         CancellationToken cancellationToken = default)
@@ -31,17 +38,25 @@ public sealed class SearchPulseEventStore(
             options.MaximumQueuedEvents);
         scope.Complete();
 
-        return Task.FromResult(inserted == 1
-            ? SearchPulseEventRecordResult.Accepted
-            : SearchPulseEventRecordResult.QueueFull);
+        if (inserted == 1)
+        {
+            SearchPulseMetrics.RecordAcceptedEvent();
+            return Task.FromResult(SearchPulseEventRecordResult.Accepted);
+        }
+
+        SearchPulseMetrics.RecordRejectedEvent();
+        LogQueueFull(logger, options.MaximumQueuedEvents, null);
+        return Task.FromResult(SearchPulseEventRecordResult.QueueFull);
     }
 
-    public int GetPendingEventCount()
+    public SearchPulseQueueStatus GetQueueStatus()
     {
         using var scope = scopeProvider.CreateScope();
-        var pendingEventCount = scope.Database.ExecuteScalar<int>(
-            $"SELECT COUNT(*) FROM {SearchPulseEventQueueDto.TableName} WHERE processedUtc IS NULL");
+        var queueStatus = scope.Database.FirstOrDefault<SearchPulseQueueStatus>(
+            $"SELECT COUNT(*) AS PendingEvents, MIN(occurredUtc) AS OldestPendingEventUtc " +
+            $"FROM {SearchPulseEventQueueDto.TableName} WHERE processedUtc IS NULL")
+            ?? new SearchPulseQueueStatus(0, null);
         scope.Complete();
-        return pendingEventCount;
+        return queueStatus;
     }
 }

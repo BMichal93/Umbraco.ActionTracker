@@ -33,11 +33,13 @@ public sealed class SearchPulseOverviewService(
         var interactionCounts = scope.Database.Fetch<SearchPulseInteractionCount>(
             $"SELECT eventType AS EventType, target AS Target, COUNT(*) AS Interactions FROM {SearchPulseEventDto.TableName} " +
             "WHERE (@0 IS NULL OR occurredUtc >= @0) AND target IS NOT NULL AND target <> '' " +
-            "AND eventType IN (@1, @2, @3) GROUP BY eventType, target",
+            "AND eventType IN (@1, @2, @3, @4, @5) GROUP BY eventType, target",
             sinceParameter,
             SearchPulseEventType.ExternalLinkClick.ToString(),
             SearchPulseEventType.DownloadClick.ToString(),
-            SearchPulseEventType.CustomAction.ToString());
+            SearchPulseEventType.CustomAction.ToString(),
+            SearchPulseEventType.FormSubmit.ToString(),
+            SearchPulseEventType.VideoPlay.ToString());
 
         if (rangeDays == 0)
         {
@@ -50,10 +52,12 @@ public sealed class SearchPulseOverviewService(
             interactionCounts.AddRange(scope.Database.Fetch<SearchPulseInteractionCount>(
                 $"SELECT eventType AS EventType, target AS Target, SUM(eventCount) AS Interactions " +
                 $"FROM {SearchPulseDailyAggregateDto.TableName} WHERE target <> '' " +
-                "AND eventType IN (@0, @1, @2) GROUP BY eventType, target",
+                "AND eventType IN (@0, @1, @2, @3, @4) GROUP BY eventType, target",
                 SearchPulseEventType.ExternalLinkClick.ToString(),
                 SearchPulseEventType.DownloadClick.ToString(),
-                SearchPulseEventType.CustomAction.ToString()));
+                SearchPulseEventType.CustomAction.ToString(),
+                SearchPulseEventType.FormSubmit.ToString(),
+                SearchPulseEventType.VideoPlay.ToString()));
         }
 
         scope.Complete();
@@ -141,7 +145,7 @@ public sealed class SearchPulseOverviewService(
     }
 
     private static bool IsSupportedInteractionType(string eventType) =>
-        eventType is nameof(SearchPulseEventType.ExternalLinkClick) or nameof(SearchPulseEventType.DownloadClick) or nameof(SearchPulseEventType.CustomAction);
+        eventType is nameof(SearchPulseEventType.ExternalLinkClick) or nameof(SearchPulseEventType.DownloadClick) or nameof(SearchPulseEventType.CustomAction) or nameof(SearchPulseEventType.FormSubmit) or nameof(SearchPulseEventType.VideoPlay);
 
     private sealed class StringTupleComparer : IEqualityComparer<(string EventType, string Target)>
     {

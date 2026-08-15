@@ -44,7 +44,7 @@ dotnet build tests/SearchPulse.BrowserTests/SearchPulse.BrowserTests.csproj --co
 dotnet test tests/SearchPulse.BrowserTests/SearchPulse.BrowserTests.csproj --configuration Release --no-build
 ```
 
-The browser suite is development-only and uses Playwright's local browser runtime. It does not add a package dependency to an installed Umbraco website.
+The browser suite is development-only and uses Playwright's local browser runtime. It does not add a package dependency to an installed Umbraco website. For a production-database, two-node verification, see the opt-in [SQL Server multi-node script](docs/production.md#optional-sql-server-multi-node-verification).
 
 ## Installation and setup
 
@@ -55,6 +55,7 @@ Install `SearchPulse.Umbraco` from NuGet in an Umbraco 17.6+ web project. Search
   "SearchPulse": {
     "DetailedDataRetentionDays": 30,
     "MaximumQueuedEvents": 100000,
+    "QueueWarningThresholdPercent": 75,
     "EventProcessingBatchSize": 250
   }
 }
@@ -82,9 +83,9 @@ Include the tracker in the public layout and start it only after the same consen
 ```
 
 The server independently checks `IAnalyticsConsentProvider`; the browser flag alone never enables collection. The client sends only the current path and a fixed event type. Page-view counts are not unique visitors or sessions, and page-exit counts are browser lifecycle signals rather than an exit-rate calculation. It excludes query strings, fragments, visitor identifiers, IP addresses, and arbitrary properties.
-Accepted events are first written to a package-owned durable database queue. A hosted Umbraco service processes bounded batches into reporting data, so reporting work does not run on the visitor request. The queue defaults to 100,000 events as a site-protection limit and uses short leases to coordinate multiple Umbraco nodes. If that limit is reached, SearchPulse returns a retryable response rather than allowing analytics to exhaust the site database.
+Accepted events are first written to a package-owned durable database queue. A hosted Umbraco service processes bounded batches into reporting data, so reporting work does not run on the visitor request. The queue defaults to 100,000 events as a site-protection limit and uses short leases to coordinate multiple Umbraco nodes. If that limit is reached, SearchPulse returns a retryable HTTP 503 response rather than allowing analytics to exhaust the site database. The Settings view and the registered `searchpulse` health check report the queue age, worker heartbeat, and failed batch count. See [production deployment guidance](docs/production.md) for sizing, metrics, multi-node behavior, and the release checklist.
 
-To record a meaningful local business action after tracking has started, call `window.SearchPulse.trackAction("newsletter-signup")`. Single-page applications can call `window.SearchPulse.trackPageView()` after a client-side route change. Downloads are recorded by their same-origin path without query strings. Action names can contain lowercase letters, digits, dots, and hyphens only; this prevents the client from turning events into a free-form data channel.
+To record a meaningful local business action after tracking has started, call `window.SearchPulse.trackAction("newsletter-signup")`. Single-page applications are tracked automatically when they use the History API; manually call `window.SearchPulse.trackPageView()` only for non-standard routing. Use `data-searchpulse-form` and `data-searchpulse-video` for anonymous form-submit and media-play signals, or use `trackAction`, `trackExternalLink`, `trackDownload`, `trackFormSubmit`, and `trackVideoPlay` for explicit integrations. Downloads are recorded by their same-origin path without query strings. Action names can contain lowercase letters, digits, dots, and hyphens only; this prevents the client from turning events into a free-form data channel.
 
 After the consent integration and layout include are ready, open the **SearchPulse** section in Umbraco, then use its single switch to turn tracking on. The Overview shows page views, exits, reading milestones, up to five most-viewed pages, and up to five popular anonymous interactions. Its 1, 7, 30, and 90-day ranges use exact detailed rows. The All time range also includes compact UTC daily aggregates created before detailed rows expire. Clearing All SearchPulse data removes both detailed and aggregated records.
 

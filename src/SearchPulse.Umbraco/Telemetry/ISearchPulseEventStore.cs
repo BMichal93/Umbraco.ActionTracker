@@ -9,5 +9,5 @@ public interface ISearchPulseEventStore
         SearchPulseEvent searchPulseEvent,
         CancellationToken cancellationToken = default);
 
-    int GetPendingEventCount();
+    SearchPulseQueueStatus GetQueueStatus();
 }

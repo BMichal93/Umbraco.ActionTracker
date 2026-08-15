@@ -2,12 +2,13 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
+    <UmbracoCmsVersion Condition="'$(UmbracoCmsVersion)' == ''">17.*</UmbracoCmsVersion>
     <UmbracoAppLocalIcuVersion Condition="'$(UmbracoAppLocalIcuVersion)' == ''">72.1.0.3</UmbracoAppLocalIcuVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Umbraco.Cms" Version="17.*" />
-    <PackageVersion Include="Umbraco.Cms.DevelopmentMode.Backoffice" Version="17.*" />
-    <PackageVersion Include="SearchPulse.Umbraco" Version="0.1.0-alpha.18" />
+    <PackageVersion Include="Umbraco.Cms" Version="$(UmbracoCmsVersion)" />
+    <PackageVersion Include="Umbraco.Cms.DevelopmentMode.Backoffice" Version="$(UmbracoCmsVersion)" />
+    <PackageVersion Include="SearchPulse.Umbraco" Version="0.1.0-alpha.19" />
     <PackageVersion Include="Microsoft.ICU.ICU4C.Runtime" Version="$(UmbracoAppLocalIcuVersion)" />
   </ItemGroup>
 </Project>

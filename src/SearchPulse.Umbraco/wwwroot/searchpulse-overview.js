@@ -137,6 +137,10 @@ function formatInteraction(interaction) {
             return "Download <code>" + target + "</code>";
         case "CustomAction":
             return "Custom action: <code>" + target + "</code>";
+        case "FormSubmit":
+            return "Form submitted: <code>" + target + "</code>";
+        case "VideoPlay":
+            return "Video played: <code>" + target + "</code>";
         default:
             return "Interaction";
     }

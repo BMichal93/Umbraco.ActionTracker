@@ -35,6 +35,11 @@ public sealed class SearchPulseOptions
     public int EventProcessingIntervalMilliseconds { get; set; } = 1_000;
 
     /// <summary>
+    /// Marks the queue unhealthy before it reaches hard capacity, giving operators time to act.
+    /// </summary>
+    public int QueueWarningThresholdPercent { get; set; } = 75;
+
+    /// <summary>
     /// Prevents accidental collection from administration and API routes.
     /// </summary>
     public IReadOnlyCollection<string> ExcludedPaths { get; set; } = ["/umbraco", "/api"];

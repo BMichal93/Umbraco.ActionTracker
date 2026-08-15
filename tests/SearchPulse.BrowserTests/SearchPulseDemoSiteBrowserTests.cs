@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using Microsoft.Data.Sqlite;
@@ -52,6 +52,10 @@ public sealed class SearchPulseDemoSiteBrowserTests : IAsyncLifetime
         await page.WaitForURLAsync("**/");
         await Expect(page.GetByText("Analytics consent is enabled.")).ToBeVisibleAsync();
         await page.Locator("[data-searchpulse-action='book-consultation']").ClickAsync();
+        await page.Locator("#demo-email").FillAsync("review@example.test");
+        await page.Locator("[data-searchpulse-form] button[type='submit']").ClickAsync();
+        await page.Locator("#programmatic-download").ClickAsync();
+        await page.EvaluateAsync("window.SearchPulse.trackVideoPlay('product-tour')");
         await page.Locator("a[href='https://umbraco.com']").ClickAsync();
         var download = page.WaitForDownloadAsync();
         await page.Locator("a[download]").ClickAsync();
@@ -82,10 +86,14 @@ public sealed class SearchPulseDemoSiteBrowserTests : IAsyncLifetime
             "ExternalLinkClick",
             "DownloadClick",
             "CustomAction",
+            "FormSubmit",
+            "VideoPlay",
         };
         var expectedTargets = new[]
         {
             "book-consultation",
+            "demo-enquiry",
+            "product-tour",
             "request-pricing",
             "newsletter-signup",
             "umbraco.com",

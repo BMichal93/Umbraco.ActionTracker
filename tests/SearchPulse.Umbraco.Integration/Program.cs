@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.DataProtection;
 using SearchPulse.Umbraco.Consent;
 using SearchPulse.Umbraco.Integration;
 using SearchPulse.Umbraco.Retention;
+using SearchPulse.Umbraco.Telemetry;
+using Umbraco.Cms.Infrastructure.Scoping;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "umbraco", "Data", "SearchPulseIntegration-DataProtection-Keys");
@@ -53,6 +55,14 @@ app.MapPost("/searchpulse-test/purge", static (ISearchPulseRetentionService rete
 {
     retentionService.PurgeExpiredEvents();
     return Results.NoContent();
+});
+// This endpoint is used only by the optional SQL Server multi-node verification script.
+app.MapGet("/searchpulse-test/event-count", static (IScopeProvider scopeProvider) =>
+{
+    using var scope = scopeProvider.CreateScope();
+    var count = scope.Database.ExecuteScalar<long>($"SELECT COUNT(*) FROM {SearchPulseEventDto.TableName}");
+    scope.Complete();
+    return Results.Ok(count);
 });
 app.MapGet("/searchpulse-review/{**path}", static () => Results.Content("""
 <!doctype html>

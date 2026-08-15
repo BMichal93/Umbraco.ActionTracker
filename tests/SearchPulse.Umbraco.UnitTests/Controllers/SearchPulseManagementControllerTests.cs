@@ -23,6 +23,8 @@ public sealed class SearchPulseManagementControllerTests
         Assert.True(response.IsEnabled);
         Assert.Equal(12, response.PendingEvents);
         Assert.Equal(100_000, response.MaximumQueuedEvents);
+        Assert.Equal(75, response.QueueWarningThresholdPercent);
+        Assert.True(response.WorkerStarted);
     }
 
     [Fact]
@@ -82,6 +84,7 @@ public sealed class SearchPulseManagementControllerTests
             overviewService ?? new StubOverviewService(CreateOverview()),
             dataManagementService ?? new StubDataManagementService(),
             new StubEventStore(),
+            new StubOperationalState(),
             new StubOptionsMonitor());
 
     private static SearchPulseOverview CreateOverview() =>
@@ -126,7 +129,18 @@ public sealed class SearchPulseManagementControllerTests
             CancellationToken cancellationToken = default) =>
             Task.FromResult(SearchPulseEventRecordResult.Accepted);
 
-        public int GetPendingEventCount() => 12;
+        public SearchPulseQueueStatus GetQueueStatus() => new(12, new DateTime(2026, 8, 15, 10, 0, 0, DateTimeKind.Utc));
+    }
+
+    private sealed class StubOperationalState : ISearchPulseOperationalState
+    {
+        public void MarkWorkerStarted() { }
+
+        public void MarkBatchSucceeded(int processedCount) { }
+
+        public void MarkBatchFailed() { }
+
+        public SearchPulseWorkerStatus GetStatus() => new(true, DateTime.UtcNow, null, 0, 12);
     }
 
     private sealed class StubOptionsMonitor : IOptionsMonitor<SearchPulseOptions>

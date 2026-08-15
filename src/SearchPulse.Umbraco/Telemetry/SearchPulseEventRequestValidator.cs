@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
 namespace SearchPulse.Umbraco.Telemetry;
@@ -41,10 +41,12 @@ public sealed partial class SearchPulseEventRequestValidator
             "external-link-click" => SearchPulseEventType.ExternalLinkClick,
             "download-click" => SearchPulseEventType.DownloadClick,
             "custom-action" => SearchPulseEventType.CustomAction,
+            "form-submit" => SearchPulseEventType.FormSubmit,
+            "video-play" => SearchPulseEventType.VideoPlay,
             _ => default,
         };
 
-        return value is "page-view" or "page-exit" or "scroll-25" or "scroll-50" or "scroll-75" or "external-link-click" or "download-click" or "custom-action";
+        return value is "page-view" or "page-exit" or "scroll-25" or "scroll-50" or "scroll-75" or "external-link-click" or "download-click" or "custom-action" or "form-submit" or "video-play";
     }
 
     private static bool IsSafePath(string? value)
@@ -68,7 +70,7 @@ public sealed partial class SearchPulseEventRequestValidator
         return value.Length <= MaximumTargetLength
             && (type == SearchPulseEventType.DownloadClick
                 ? IsSafePath(value)
-                : TargetPattern().IsMatch(value) && type is SearchPulseEventType.ExternalLinkClick or SearchPulseEventType.CustomAction);
+                : TargetPattern().IsMatch(value) && type is SearchPulseEventType.ExternalLinkClick or SearchPulseEventType.CustomAction or SearchPulseEventType.FormSubmit or SearchPulseEventType.VideoPlay);
     }
 
     [GeneratedRegex("^[a-z0-9][a-z0-9.-]*$", RegexOptions.CultureInvariant)]

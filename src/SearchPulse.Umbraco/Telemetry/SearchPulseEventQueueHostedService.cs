@@ -12,6 +12,7 @@ namespace SearchPulse.Umbraco.Telemetry;
 internal sealed class SearchPulseEventQueueHostedService(
     IServiceScopeFactory serviceScopeFactory,
     IOptionsMonitor<SearchPulseOptions> optionsMonitor,
+    ISearchPulseOperationalState operationalState,
     ILogger<SearchPulseEventQueueHostedService> logger) : BackgroundService
 {
     private static readonly Action<ILogger, Exception?> LogProcessingFailure = LoggerMessage.Define(
@@ -21,6 +22,7 @@ internal sealed class SearchPulseEventQueueHostedService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        operationalState.MarkWorkerStarted();
         try
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -28,10 +30,14 @@ internal sealed class SearchPulseEventQueueHostedService(
                 try
                 {
                     using var scope = serviceScopeFactory.CreateScope();
-                    scope.ServiceProvider.GetRequiredService<ISearchPulseEventQueueProcessor>().ProcessBatch();
+                    var processedCount = scope.ServiceProvider.GetRequiredService<ISearchPulseEventQueueProcessor>().ProcessBatch();
+                    operationalState.MarkBatchSucceeded(processedCount);
+                    SearchPulseMetrics.RecordProcessedEvents(processedCount);
                 }
                 catch (Exception exception) when (exception is not OperationCanceledException || !stoppingToken.IsCancellationRequested)
                 {
+                    operationalState.MarkBatchFailed();
+                    SearchPulseMetrics.RecordFailedBatch();
                     LogProcessingFailure(logger, exception);
                 }
 

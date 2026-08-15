@@ -19,6 +19,7 @@ public sealed class SearchPulseManagementController(
     ISearchPulseOverviewService overviewService,
     ISearchPulseDataManagementService dataManagementService,
     ISearchPulseEventStore eventStore,
+    ISearchPulseOperationalState operationalState,
     IOptionsMonitor<SearchPulseOptions> optionsMonitor) : ManagementApiControllerBase
 {
     [HttpGet("overview")]
@@ -39,10 +40,23 @@ public sealed class SearchPulseManagementController(
 
     [HttpGet("settings")]
     [ProducesResponseType<SearchPulseSettingsResponse>(StatusCodes.Status200OK)]
-    public ActionResult<SearchPulseSettingsResponse> GetSettings() => Ok(new SearchPulseSettingsResponse(
-        settingsService.IsEnabled(),
-        eventStore.GetPendingEventCount(),
-        optionsMonitor.CurrentValue.MaximumQueuedEvents));
+    public ActionResult<SearchPulseSettingsResponse> GetSettings()
+    {
+        var queue = eventStore.GetQueueStatus();
+        var worker = operationalState.GetStatus();
+        var options = optionsMonitor.CurrentValue;
+        return Ok(new SearchPulseSettingsResponse(
+            settingsService.IsEnabled(),
+            queue.PendingEvents,
+            options.MaximumQueuedEvents,
+            options.QueueWarningThresholdPercent,
+            queue.OldestPendingEventUtc,
+            worker.WorkerStarted,
+            worker.LastSuccessfulBatchUtc,
+            worker.LastFailureUtc,
+            worker.FailedBatchCount,
+            worker.LastProcessedCount));
+    }
 
     [HttpPut("settings")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -86,7 +100,17 @@ public sealed class SearchPulseManagementController(
 /// <summary>
 /// The operational controls and queue state presented in the backoffice.
 /// </summary>
-public sealed record SearchPulseSettingsResponse(bool IsEnabled, int PendingEvents, int MaximumQueuedEvents);
+public sealed record SearchPulseSettingsResponse(
+    bool IsEnabled,
+    int PendingEvents,
+    int MaximumQueuedEvents,
+    int QueueWarningThresholdPercent,
+    DateTime? OldestPendingEventUtc,
+    bool WorkerStarted,
+    DateTime? LastSuccessfulBatchUtc,
+    DateTime? LastFailureUtc,
+    int FailedBatchCount,
+    int LastProcessedCount);
 
 /// <summary>
 /// A request to turn collection on or off.

@@ -22,6 +22,8 @@ public static class SearchPulseServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<SearchPulseOptions>, SearchPulseOptionsValidator>();
         services.TryAddSingleton<IAnalyticsConsentProvider, DenyAnalyticsConsentProvider>();
         services.TryAddScoped<ISearchPulseEventStore, SearchPulseEventStore>();
+        services.TryAddSingleton<ISearchPulseOperationalState, SearchPulseOperationalState>();
+        services.AddHealthChecks().AddCheck<SearchPulseHealthCheck>("searchpulse", tags: ["searchpulse"]);
         services.TryAddScoped<ISearchPulseEventQueueProcessor, SearchPulseEventQueueProcessor>();
         services.TryAddScoped<ISearchPulseSettingsService, SearchPulseSettingsService>();
         services.TryAddScoped<ISearchPulseDataManagementService, SearchPulseDataManagementService>();

@@ -8,12 +8,12 @@ const retryDelays = [250, 1000, 3000];
 
 let started = false;
 let exitTracked = false;
+let spaNavigationStarted = false;
 const trackedScrollMilestones = new Set();
 
 function currentPath() {
     return window.location.pathname;
 }
-
 
 async function send(type, target) {
     const payload = { type, path: currentPath() };
@@ -70,19 +70,36 @@ function trackLinkClick(event) {
         return;
     }
 
+    const actionElement = event.target.closest("[data-searchpulse-action]");
+    if (actionElement?.dataset.searchpulseAction) {
+        void send("custom-action", actionElement.dataset.searchpulseAction);
+    }
+
     const link = event.target.closest("a[href]");
     if (!link) {
         return;
     }
 
     const destination = new URL(link.href, window.location.href);
-    if (destination.origin === window.location.origin && link.hasAttribute("download")) {
+    if (link.hasAttribute("download")) {
         void send("download-click", destination.pathname);
         return;
     }
 
     if (destination.origin !== window.location.origin) {
         void send("external-link-click", destination.hostname);
+    }
+}
+
+function trackFormSubmit(event) {
+    if (event.target instanceof HTMLFormElement && event.target.dataset.searchpulseForm) {
+        void send("form-submit", event.target.dataset.searchpulseForm);
+    }
+}
+
+function trackVideoPlay(event) {
+    if (event.target instanceof HTMLVideoElement && event.target.dataset.searchpulseVideo) {
+        void send("video-play", event.target.dataset.searchpulseVideo);
     }
 }
 
@@ -96,6 +113,44 @@ function trackPageView() {
     void send("page-view");
 }
 
+function startSpaNavigationTracking() {
+    if (spaNavigationStarted) {
+        return;
+    }
+
+    spaNavigationStarted = true;
+    for (const method of ["pushState", "replaceState"]) {
+        const original = window.history[method];
+        window.history[method] = function (...args) {
+            const previousPath = currentPath();
+            const result = original.apply(this, args);
+            if (currentPath() !== previousPath) {
+                trackPageView();
+            }
+
+            return result;
+        };
+    }
+
+    window.addEventListener("popstate", trackPageView);
+}
+
+function toExternalHost(value) {
+    try {
+        return new URL(value, window.location.href).hostname;
+    } catch {
+        return value;
+    }
+}
+
+function toDownloadPath(value) {
+    try {
+        return new URL(value, window.location.href).pathname;
+    } catch {
+        return value;
+    }
+}
+
 function start() {
     if (started) {
         return;
@@ -106,6 +161,9 @@ function start() {
     window.addEventListener("scroll", trackScroll, { passive: true });
     window.addEventListener("pagehide", trackExit, { once: true });
     document.addEventListener("click", trackLinkClick);
+    document.addEventListener("submit", trackFormSubmit);
+    document.addEventListener("play", trackVideoPlay, true);
+    startSpaNavigationTracking();
 }
 
 window.SearchPulse = Object.freeze({
@@ -114,6 +172,26 @@ window.SearchPulse = Object.freeze({
     trackAction(target) {
         if (started) {
             void send("custom-action", target);
+        }
+    },
+    trackExternalLink(target) {
+        if (started) {
+            void send("external-link-click", toExternalHost(target));
+        }
+    },
+    trackDownload(target) {
+        if (started) {
+            void send("download-click", toDownloadPath(target));
+        }
+    },
+    trackFormSubmit(target) {
+        if (started) {
+            void send("form-submit", target);
+        }
+    },
+    trackVideoPlay(target) {
+        if (started) {
+            void send("video-play", target);
         }
     },
 });

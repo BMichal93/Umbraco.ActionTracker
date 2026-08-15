@@ -51,6 +51,15 @@ public sealed class SearchPulseOptionsValidatorTests
 
         Assert.False(result.Succeeded);
     }
+    [Theory]
+    [InlineData(0)]
+    [InlineData(100)]
+    public void ValidateRejectsWarningThresholdOutsideTheSupportedRange(int threshold)
+    {
+        var result = _validator.Validate(null, new SearchPulseOptions { QueueWarningThresholdPercent = threshold });
+
+        Assert.False(result.Succeeded);
+    }
     [Fact]
     public void ValidateRejectsAnExcludedPathThatIsNotAPath()
     {

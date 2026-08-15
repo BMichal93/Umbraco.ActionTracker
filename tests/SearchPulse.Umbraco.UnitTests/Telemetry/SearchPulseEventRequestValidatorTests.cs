@@ -13,6 +13,8 @@ public sealed class SearchPulseEventRequestValidatorTests
     [InlineData("external-link-click")]
     [InlineData("download-click")]
     [InlineData("custom-action")]
+    [InlineData("form-submit")]
+    [InlineData("video-play")]
     public void TryValidateAcceptsSupportedEventWithSafePath(string eventType)
     {
         var request = new SearchPulseEventRequest
@@ -86,5 +88,23 @@ public sealed class SearchPulseEventRequestValidatorTests
 
         Assert.True(isValid);
         Assert.Equal("/downloads/searchpulse-guide.pdf", searchPulseEvent!.Target);
+    }
+
+    [Theory]
+    [InlineData("form-submit", "contact-enquiry")]
+    [InlineData("video-play", "product-tour")]
+    public void TryValidateAcceptsNewAnonymousInteractionTargets(string eventType, string target)
+    {
+        var request = new SearchPulseEventRequest
+        {
+            Type = eventType,
+            Path = "/offers",
+            Target = target,
+        };
+
+        var isValid = SearchPulseEventRequestValidator.TryValidate(request, out var searchPulseEvent);
+
+        Assert.True(isValid);
+        Assert.Equal(target, searchPulseEvent!.Target);
     }
 }

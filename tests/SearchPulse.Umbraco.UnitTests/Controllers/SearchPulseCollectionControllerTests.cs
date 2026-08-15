@@ -140,6 +140,6 @@ public sealed class SearchPulseCollectionControllerTests
             return Task.FromResult(result);
         }
 
-        public int GetPendingEventCount() => 0;
+        public SearchPulseQueueStatus GetQueueStatus() => new(0, null);
     }
 }

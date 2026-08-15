@@ -1,0 +1,66 @@
+trigger:
+  branches:
+    include:
+      - master
+
+pr:
+  branches:
+    include:
+      - master
+
+variables:
+  buildConfiguration: Release
+
+jobs:
+  - job: unit_and_package
+    displayName: Unit tests and package
+    pool:
+      vmImage: windows-latest
+    steps:
+      - task: UseDotNet@2
+        inputs:
+          packageType: sdk
+          version: 10.x
+      - powershell: dotnet restore SearchPulse.Umbraco.sln
+        displayName: Restore package and unit tests
+      - powershell: dotnet test SearchPulse.Umbraco.sln --configuration $(buildConfiguration) --no-restore --verbosity minimal
+        displayName: Run unit tests
+      - powershell: dotnet pack src/SearchPulse.Umbraco/SearchPulse.Umbraco.csproj --configuration $(buildConfiguration) --no-build --output $(Build.ArtifactStagingDirectory)
+        displayName: Pack SearchPulse
+      - task: PublishBuildArtifacts@1
+        inputs:
+          PathtoPublish: $(Build.ArtifactStagingDirectory)
+          ArtifactName: searchpulse-package
+
+  - job: browser_compatibility
+    displayName: Browser compatibility
+    pool:
+      vmImage: windows-latest
+    strategy:
+      matrix:
+        umbraco_17_6:
+          UmbracoCmsVersion: 17.6.0
+        latest_umbraco_17:
+          UmbracoCmsVersion: 17.*
+    steps:
+      - task: UseDotNet@2
+        inputs:
+          packageType: sdk
+          version: 10.x
+      - powershell: dotnet restore SearchPulse.Umbraco.sln
+        displayName: Restore package
+      - powershell: dotnet pack src/SearchPulse.Umbraco/SearchPulse.Umbraco.csproj --configuration $(buildConfiguration) --no-build --output artifacts
+        displayName: Pack local package
+      - powershell: dotnet restore tests/SearchPulse.Umbraco.Integration/SearchPulse.Umbraco.Integration.csproj --no-cache -p:UmbracoCmsVersion="$(UmbracoCmsVersion)"
+        displayName: Restore Umbraco integration host
+      - powershell: dotnet build tests/SearchPulse.Umbraco.Integration/SearchPulse.Umbraco.Integration.csproj --configuration $(buildConfiguration) --no-restore
+        displayName: Build Umbraco integration host
+      - powershell: dotnet build tests/SearchPulse.BrowserTests/SearchPulse.BrowserTests.csproj --configuration $(buildConfiguration)
+        displayName: Build browser tests
+      - powershell: powershell -NoProfile -File tests/SearchPulse.BrowserTests/bin/Release/net10.0/playwright.ps1 install chromium
+        displayName: Install Chromium
+      - powershell: dotnet test tests/SearchPulse.BrowserTests/SearchPulse.BrowserTests.csproj --configuration $(buildConfiguration) --no-build --verbosity minimal
+        displayName: Run browser tests
+      - powershell: powershell -NoProfile -File tests/SearchPulse.Umbraco.Integration/verify-sqlserver.ps1 -ConnectionString "$(SearchPulseSqlServerConnectionString)"
+        displayName: Verify SQL Server multi-node durability
+        condition: and(succeeded(), ne(variables['SearchPulseSqlServerConnectionString'], ''))

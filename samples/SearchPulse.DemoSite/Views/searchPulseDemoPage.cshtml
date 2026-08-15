@@ -69,14 +69,19 @@
             <button class="primary" type="button" data-searchpulse-action="@actionName">@actionLabel</button>
             <a class="button-link" href="https://umbraco.com" target="_blank" rel="noopener">Open Umbraco.com</a>
             <a class="button-link" href="/downloads/searchpulse-demo-guide.txt" download>Download the demo guide</a>
+            <button id="programmatic-download" type="button">Record programmatic download</button>
         </div>
+        <form data-searchpulse-form="demo-enquiry" class="actions">
+            <label for="demo-email">Demo enquiry</label><input id="demo-email" type="email" autocomplete="off" placeholder="Email is never tracked" required><button type="submit">Submit enquiry</button>
+        </form>
         <section class="signal-list">
             <strong>What this page demonstrates</strong><p>@detail</p>
             <ul>
                 <li>Page view when consent is granted.</li>
                 <li>Page exit when navigating away or closing the tab.</li>
                 <li>Scroll milestones at 25%, 50%, and 75%.</li>
-                <li>External-link click, download click, and the named <code>@actionName</code> local action.</li>
+                <li>External-link click, download click, named <code>@actionName</code> local action, and data-marked form submission.</li>
+                <li>Programmatic custom, external, download, form, and video events are available through <code>window.SearchPulse</code>.</li>
             </ul>
         </section>
         <section class="long-content">
@@ -103,9 +108,8 @@
             await fetch("/demo/consent", { method: hasConsent ? "DELETE" : "POST", credentials: "same-origin" });
             location.reload();
         });
-        document.querySelectorAll("[data-searchpulse-action]").forEach(element => {
-            element.addEventListener("click", () => window.SearchPulse.trackAction(element.dataset.searchpulseAction));
-        });
+        document.querySelector("[data-searchpulse-form]").addEventListener("submit", event => event.preventDefault());
+        document.getElementById("programmatic-download").addEventListener("click", () => window.SearchPulse.trackDownload("/downloads/searchpulse-demo-guide.txt"));
         if (hasConsent) {
             window.SearchPulse.start();
         }

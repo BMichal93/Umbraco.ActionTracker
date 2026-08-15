@@ -26,6 +26,11 @@ public sealed class SearchPulseOptionsValidator : IValidateOptions<SearchPulseOp
             return ValidateOptionsResult.Fail("Event processing interval must be between 100 and 60,000 milliseconds.");
         }
 
+        if (options.QueueWarningThresholdPercent is < 1 or > 99)
+        {
+            return ValidateOptionsResult.Fail("Queue warning threshold must be between 1 and 99 percent.");
+        }
+
         if (options.ExcludedPaths.Any(path => string.IsNullOrWhiteSpace(path) || !path.StartsWith('/')))
         {
             return ValidateOptionsResult.Fail("Every excluded path must begin with '/'.");

@@ -7,12 +7,13 @@
       is imported before the main project's own PropertyGroup runs, so under CPM the PackageVersion below needs
       its own fallback to stay in sync with the RuntimeHostConfigurationOption value set from the same property.
     -->
+    <UmbracoCmsVersion Condition="'$(UmbracoCmsVersion)' == ''">17.*</UmbracoCmsVersion>
     <UmbracoAppLocalIcuVersion Condition="'$(UmbracoAppLocalIcuVersion)' == ''">72.1.0.3</UmbracoAppLocalIcuVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Umbraco.Cms" Version="17.*" />
-    <PackageVersion Include="Umbraco.Cms.DevelopmentMode.Backoffice" Version="17.*" />
-    <PackageVersion Include="SearchPulse.Umbraco" Version="0.1.0-alpha.18" />
+    <PackageVersion Include="Umbraco.Cms" Version="$(UmbracoCmsVersion)" />
+    <PackageVersion Include="Umbraco.Cms.DevelopmentMode.Backoffice" Version="$(UmbracoCmsVersion)" />
+    <PackageVersion Include="SearchPulse.Umbraco" Version="0.1.0-alpha.19" />
     <PackageVersion Include="Microsoft.ICU.ICU4C.Runtime" Version="$(UmbracoAppLocalIcuVersion)" />
   </ItemGroup>
 </Project>
